@@ -1,36 +1,36 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 
-#include <sensor_msgs/Image.h>
 #include <sensor_msgs/CompressedImage.h>
-
+#include <sensor_msgs/Image.h>
 
 pragma once
 
-namespace bag2vid
-{
+    namespace bag2vid {
 
-class Camera
-{
+  class Camera {
   public:
-    Camera(const std::string &name, const std::string &topic, const std::string &image_type);
+    inline Camera(const std::string &name, const std::string &topic,
+                  const std::string &image_type)
+        : name_(name), topic_(topic), image_type_(image_type) {}
     ~Camera();
 
     /**
      * @brief Add messages to the camera
      */
-    void addMessages(const std::vector<std::shared_ptr<rosbag::MessageInstance>> &messages);
+    void addMessages(
+        const std::vector<std::shared_ptr<rosbag::MessageInstance>> &messages);
 
     /**
      * @brief Get the name of the camera
      */
     inline std::string getName() const { return name_; }
-    
+
     /**
      * @brief Get the topic of the camera
      */
     inline std::string getTopic() const { return topic_; }
-    
+
     /**
      * @brief Get the image type of the camera
      */
@@ -49,8 +49,10 @@ class Camera
     /**
      * @brief Get the messages of the camera
      */
-    inline std::vector<std::shared_ptr<rosbag::MessageInstance>> getMessages() const { return messages_; }
-
+    inline std::vector<std::shared_ptr<rosbag::MessageInstance>>
+    getMessages() const {
+      return messages_;
+    }
 
   private:
     std::string name_;
@@ -61,6 +63,6 @@ class Camera
     ros::Time end_time_;
 
     std::vector<std::shared_ptr<rosbag::MessageInstance>> messages_;
-};
+  };
 
 } // namespace bag2vid
