@@ -1,3 +1,13 @@
+/*
+ * @file Extractor.hpp
+ * @author Stathi Weir (stathi.weir@gmail.com)
+ * @brief
+ * @version 0.1
+ * @date 2024-06-09 
+ */
+
+#pragma once
+
 #include "bag2vid/Types.hpp"
 
 #include <iostream>
@@ -12,11 +22,10 @@
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 
-#pragma once
-
-namespace bag2vid {
-
-class Extractor {
+namespace bag2vid
+{
+class Extractor
+{
 public:
   Extractor(){};
   ~Extractor(){};
@@ -65,9 +74,15 @@ private:
   // Rosbag file path
   std::string bag_file_;
 
+  // Bag start time and end time
+  ros::Time bag_start_time_;
+  ros::Time bag_end_time_;
+
   // Dictionay of image topics
   // Maps topic names to a vector of shared pointers to the image messages
   std::map<std::string, std::vector<bag2vid::MessageInstancePtr>> image_data_;
+
+  cv::VideoWriter video_writer_;
 };
 
 } // namespace bag2vid

@@ -23,9 +23,7 @@ bool Extractor::loadBag(const std::string& bag_file)
 std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
 {
     std::vector<std::shared_ptr<rosbag::MessageInstance>> messages;
-    ros::Time start_time;  // Time of first message
-    ros::Time end_time;    // Time of last message
-
+    
     // Get the list of topics in the bag
     std::vector<std::string> topics;
     topics.push_back(topic);
@@ -34,10 +32,10 @@ std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages
     rosbag::View view(bag_, rosbag::TopicQuery(topics));
 
     // Get begin and end times
-    start_time = view.getBeginTime();
-    end_time = view.getEndTime();
-    std::cout << "Start time: " << start_time << std::endl;
-    std::cout << "End time: " << end_time << std::endl;
+    bag_start_time_ = view.getBeginTime();
+    bag_end_time_ = view.getEndTime();
+    std::cout << "Start time: " << bag_start_time_ << std::endl;
+    std::cout << "End time: " << bag_end_time_ << std::endl;
 
     // Extract the messages
     for (const rosbag::MessageInstance& m : view)
@@ -51,11 +49,10 @@ std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages
     return messages;
 }
 
+
 bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& start_time, const ros::Time& end_time, const std::string& video_file)
 {
     // Write frames with timestamps start_time <= t < end_time to a video file
-    cv::VideoWriter video_writer;
-
     std::cout << "Writing video for topic: " << camera_name << std::endl;
 
     // Check we have data for the topic
@@ -88,7 +85,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
     std::cout << "Image size: " << image_size << std::endl;
     
     // Open the video writer.  Write to .mp4 file with H265 codec
-    video_writer.open(video_file, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), 30, image_size);
+    video_writer_.open(video_file, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), 30, image_size);
     std::cout << "Video writer opened" << std::endl;
 
 
@@ -130,7 +127,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
                 return false;
             }
             // Write frame to video
-            video_writer.write(image);
+            video_writer_.write(image);
             count++;
             if (count % 100 == 0)
             {

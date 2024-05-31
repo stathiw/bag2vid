@@ -7,12 +7,17 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "bag2vid");
     ros::NodeHandle nh;
 
-
     std::string bag_file = "/home/octopus/Hullbot_bag_files/240326_ribecca/H6_Stingaree_humu_ribecca_vaucluse_bay_survey_manual_transect_2__2024-03-27-01-07-20.bag";
     std::string topic = "/camera_4/image_raw_relay/compressed";
     std::string camera_name = "camera_4";
     std::string output_file = "/home/octopus/Downloads/TestExtractedVideo.mp4";
 
+    /*
+    std::string bag_file = "/home/octopus/Hullbot_bag_files/240529_chapman_foil/H6_Barracuda_MAC48b02d883315_chapman_foil_syd_bh_clean__2024-05-29-03-52-03.bag";
+    std::string topic = "/camera_2/image_raw_relay/compressed";
+    std::string camera_name = "camera_2";
+    std::string output_file = "/home/octopus/Downloads/ChapmanMarineFrontCamClean.mp4";
+    */
 
     // If --dev flag is passed, run in development mode
     if (argc > 1 && std::string(argv[1]) == "--dev")

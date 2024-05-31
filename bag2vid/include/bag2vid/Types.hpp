@@ -1,4 +1,4 @@
-/**
+/*
  * @file Types.hpp
  * @author Stathi Weir (stathi.weir@gmail.com)
  *
@@ -12,7 +12,8 @@
 
 #pragma once
 
-namespace bag2vid {
+namespace bag2vid
+{
 
 using ImagePtr = std::shared_ptr<sensor_msgs::Image>;
 using CompressedImagePtr = std::shared_ptr<sensor_msgs::CompressedImage>;
