@@ -6,11 +6,12 @@
  * @date 2024-05-25
  */
 
+#pragma once
+
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <rosbag/message_instance.h>
 
-#pragma once
 
 namespace bag2vid
 {

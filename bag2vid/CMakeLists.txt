@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(bag2vid)
 
+set(CMAKE_CXX_STANDARD 17)
+
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,6 +18,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5PrintSupport REQUIRED)
+find_package(Qt5Multimedia REQUIRED)
+find_package(Qt5MultimediaWidgets REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -107,9 +113,10 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  #LIBRARIES bag2vid
   CATKIN_DEPENDS roscpp sensor_msgs std_msgs rosbag
+  INCLUDE_DIRS include
+  LIBRARIES bag2vid
+  DEPENDS Qt5Widgets Qt5PrintSupport Qt5Multimedia Qt5MultimediaWidgets
 )
 
 ###########
@@ -121,22 +128,46 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Qt5Widgets_INCLUDE_DIRS}
+  ${Qt5Multimedia_INCLUDE_DIRS}
+  ${Qt5MultimediaWidgets_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME} SHARED
-  src/Extractor.cpp
+  src/backend/Extractor.cpp
+  src/frontend/Visualiser.cpp
 )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_gui ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  Qt5::Core
+  Qt5::Gui
+  Qt5::Widgets
+  Qt5::Multimedia
+  Qt5::MultimediaWidgets
+)
+
+## Add Qt-specific settings
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node nodes/bag2vid_node.cpp)
+add_executable(bag2vid_node nodes/bag2vid_node.cpp ${MOC_SOURCES})
+add_executable(bag2vid_gui nodes/bag2vid_gui.cpp src/frontend/Visualiser.cpp ${MOC_SOURCES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,6 +185,20 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}_gui
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  Qt5::Core
+  Qt5::Gui
+  Qt5::Widgets
+  Qt5::Multimedia
+  Qt5::MultimediaWidgets
+)
+
+# add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##

@@ -27,8 +27,8 @@ namespace bag2vid
 class Extractor
 {
 public:
-  Extractor(){};
-  ~Extractor(){};
+  inline Extractor() {}
+  inline ~Extractor() { bag_.close(); }
 
   /**
    * @brief Loads the given rosbag file
