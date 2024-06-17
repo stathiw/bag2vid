@@ -1,4 +1,4 @@
-#include "bag2vid/Extractor.hpp"
+#include "bag2vid/backend/Extractor.hpp"
 
 #include <ros/ros.h>
 
