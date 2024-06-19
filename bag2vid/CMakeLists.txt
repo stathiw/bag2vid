@@ -137,6 +137,7 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
   src/backend/Extractor.cpp
   src/frontend/Visualiser.cpp
+  src/frontend/Timeline.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -161,7 +162,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp)
+qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp include/bag2vid/frontend/Timeline.hpp)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
