@@ -23,11 +23,12 @@
 #include <ros/ros.h>
 
 #include <bag2vid/backend/Extractor.hpp>
+#include <bag2vid/frontend/Timeline.hpp>
 
 namespace bag2vid 
 {
 
-class Visualiser : public QMainWindow
+class Visualiser : public QWidget
 {
     // A class for the gui frontend of the bag2vid node
     // Contains windows for selecting the bag file, topic, camera name, and output file
@@ -38,9 +39,10 @@ public:
     Visualiser(QWidget *parent = nullptr);
     ~Visualiser();
 
-    // bool loadRosbag();
-    // void playPauseVideo();
-    // bool extractVideo();
+private slots:
+    void loadBag();
+    void togglePlayPause();
+    void extractVideo();
 
 private:
     std::unique_ptr<Extractor> extractor_;
@@ -49,11 +51,13 @@ private:
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
     QPushButton* extract_video_button_;
-    QSlider* start_time_slider_;
-    QSlider* end_time_slider_;
-    QSlider* timeline_slider_;
     QMediaPlayer* media_player_;
     QVideoWidget* video_widget_;
+    TimelineWidget* timeline_widget_;
+
+    bool is_playing_;
+
+    void setupUI();
 };
 } // namespace bag2vid
 
