@@ -7,6 +7,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFileDialog>
+#include <QThread>
 
 
 namespace bag2vid
@@ -16,7 +17,32 @@ Visualiser::Visualiser(QWidget *parent) :
     QWidget(parent)
 {
     is_playing_ = false;
+    extractor_ = std::make_unique<Extractor>();
     setupUI();
+
+    // Connect the buttons to their slots
+    connect(load_bag_button_, &QPushButton::clicked, this, &Visualiser::loadBag);
+    connect(play_pause_button_, &QPushButton::clicked, this, &Visualiser::togglePlayPause);
+    connect(extract_video_button_, &QPushButton::clicked, this, &Visualiser::extractVideo);
+    connect(topic_dropdown_, SIGNAL(currentIndexChanged(int)), this, SLOT(updateTopicDropdown()));
+
+    connect(video_player_, &VideoPlayer::newFrame, [this](const QImage& frame)
+    {
+        std::cout << "New frame" << std::endl;
+        // Resize image to fit window width
+        QSize image_size = frame.size();
+        // Set to 640 width
+        QSize label_size = QSize(640, 480);
+
+        QImage resized_frame = frame.scaled(label_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        image_label_->setPixmap(QPixmap::fromImage(resized_frame));
+    });
+
+    connect(video_player_, &VideoPlayer::currentTimestamp, [this](float time)
+    {
+        std::cout << "Current time: " << time << std::endl;
+        timeline_widget_->setCurrentTime(time);
+    });
 }
 
 void Visualiser::setupUI()
@@ -31,17 +57,8 @@ void Visualiser::setupUI()
     timeline_widget_ = new TimelineWidget(this);
 
     // Set up the video widget
-    video_widget_ = new QVideoWidget(this);
-    media_player_ = new QMediaPlayer(this);
-    media_player_->setVideoOutput(video_widget_);
-    video_widget_->setGeometry(100, 100, 300, 400);
-    video_widget_->show();
-
-    // Connect the buttons to their slots
-    connect(load_bag_button_, &QPushButton::clicked, this, &Visualiser::loadBag);
-    connect(play_pause_button_, &QPushButton::clicked, this, &Visualiser::togglePlayPause);
-    connect(extract_video_button_, &QPushButton::clicked, this, &Visualiser::extractVideo);
-
+    video_player_ = new VideoPlayer(this);
+    image_label_ = new QLabel(this);
 
     // Set up the layout
     QVBoxLayout* main_layout = new QVBoxLayout(this);
@@ -57,10 +74,18 @@ void Visualiser::setupUI()
     play_pause_button_->setFixedWidth(50);
     timeline_layout->addWidget(play_pause_button_);
     timeline_layout->addWidget(timeline_widget_);
+    // Don't allow the timeline to stretch vertically if the window is resized
+    timeline_layout->setAlignment(Qt::AlignTop);
+
+    // Video layout
+    QVBoxLayout* video_layout = new QVBoxLayout;
+    video_layout->addWidget(image_label_);
+    // Allow the video to stretch to fill the available space
+    video_layout->setAlignment(Qt::AlignCenter);
 
     main_layout->addLayout(top_layout);
     main_layout->addLayout(timeline_layout);
-    main_layout->addWidget(video_widget_);
+    main_layout->addLayout(video_layout);
 
     setLayout(main_layout);
 }
@@ -71,27 +96,52 @@ void Visualiser::loadBag()
 {
     std::cout << "Load Bag" << std::endl;
 
-    // Load mp4 video
-    // QString video_path = "/home/octopus/Downloads/ClipperVHullbot1.mp4";
-    QString video_path = QFileDialog::getOpenFileName(this, "Open Video", QDir::homePath(), "Video Files (*.mp4, *.avi, *mpg)");
-    media_player_->setMedia(QUrl::fromLocalFile(video_path));
-    // Check if the video was loaded successfully
-    if (media_player_->mediaStatus() == QMediaPlayer::NoMedia)
+    // Reset extractor
+    extractor_ = std::make_unique<Extractor>();
+
+    // Select rosbag file
+    QString rosbag_path = QFileDialog::getOpenFileName(this, "Open rosbag", QDir::homePath(), "Ros bag files (*.bag)");
+    
+    // Load rosbag
+    if (extractor_->loadBag(rosbag_path.toStdString()))
     {
-        std::cerr << "Error loading video" << std::endl;
-        return;
-    }
-    else if (media_player_->mediaStatus() == QMediaPlayer::LoadedMedia)
-    {
-        std::cout << "Video loaded successfully" << std::endl;
-        video_widget_->show();
-        video_widget_->update();
-        return;
+        std::cout << "Bag loaded successfully" << std::endl;
+        topic_dropdown_->clear();
+
+        // Get topics
+        std::vector<std::string> topics = extractor_->getImageTopics();
+        for (const auto& topic : topics)
+        {
+            topic_dropdown_->addItem(QString::fromStdString(topic));
+        }
     }
     else
     {
-        std::cout << media_player_->mediaStatus() << std::endl;
+        std::cout << "Failed to load bag" << std::endl;
     }
+}
+
+void Visualiser::updateTopicDropdown()
+{
+    std::cout << "Update Topic Dropdown" << std::endl;
+    std::string current_topic = topic_dropdown_->currentText().toStdString();
+    // Check dropdown is not empty
+    if (current_topic.empty())
+    {
+        return;
+    }
+    std::cout << "selected topic: " << current_topic << std::endl;
+
+    // Load messages for the selected topic
+    // camera name is first part of topic name (eg. /camera_2/image_raw_relay/compressed -> camera_2)
+    std::string camera_name = current_topic.substr(1, current_topic.find("/", 1) - 1);
+    
+    std::cout << "Extracting messages for camera: " << camera_name << std::endl;
+    std::vector<std::shared_ptr<rosbag::MessageInstance>> messages =
+      extractor_->extractMessages(topic_dropdown_->currentText().toStdString(), camera_name);
+    // Load messages into video player
+    video_player_->loadMessages(messages);
+    std::cout << "Messages extracted" << std::endl;
 }
 
 void Visualiser::togglePlayPause()
@@ -99,15 +149,13 @@ void Visualiser::togglePlayPause()
     if (is_playing_)
     {
         std::cout << "Pause" << std::endl;
-        media_player_->pause();
-        qDebug() << media_player_->state();
+        video_player_->pause();
         play_pause_button_->setText("Play");
     }
     else
     {
         std::cout << "Play" << std::endl;
-        media_player_->play();
-        qDebug() << media_player_->state();
+        video_player_->play();
         play_pause_button_->setText("Pause");
     }
     is_playing_ = !is_playing_;

@@ -27,6 +27,15 @@ public:
     inline float getEndTime() const { return end_time_; }
     inline float getCurrentTime() const { return current_time_; }
 
+    void setStartTime(float time) { start_time_ = time; update(); }
+    void setEndTime(float time) { end_time_ = time; update(); }
+    void setCurrentTime(float time) { current_time_ = time; update(); }
+
+signals:
+    // void startTimeChanged(float time);
+    // void endTimeChanged(float time);
+    void currentTimeChanged(float time);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
