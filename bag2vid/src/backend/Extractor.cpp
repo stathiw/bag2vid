@@ -10,6 +10,16 @@ bool Extractor::loadBag(const std::string& bag_file)
     try
     {
         bag_.open(bag_file, rosbag::bagmode::Read);
+        // Find the image topics in the bag
+        rosbag::View view(bag_);
+        for (const rosbag::ConnectionInfo* info : view.getConnections())
+        {
+            if (info->datatype == "sensor_msgs/Image" || info->datatype == "sensor_msgs/CompressedImage")
+            {
+                std::cout << "Found topic: " << info->topic << std::endl;
+                image_topics_.push_back(info->topic);
+            }
+        }
     }
     catch (rosbag::BagIOException& e)
     {
@@ -20,8 +30,28 @@ bool Extractor::loadBag(const std::string& bag_file)
     return true;
 }
 
+void Extractor::closeBag()
+{
+    // Close the bag file and clear the image data
+    bag_.close();
+    image_data_.clear();
+    image_topics_.clear();
+}
+
+std::vector<std::string> Extractor::getImageTopics()
+{
+    return image_topics_;
+}
+
 std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
 {
+    // Check if we have already extracted messages for this topic
+    if (image_data_.find(camera_name) != image_data_.end())
+    {
+        std::cout << "Messages already extracted for topic: " << camera_name << std::endl;
+        return image_data_.at(camera_name);
+    }
+
     std::vector<std::shared_ptr<rosbag::MessageInstance>> messages;
     
     // Get the list of topics in the bag

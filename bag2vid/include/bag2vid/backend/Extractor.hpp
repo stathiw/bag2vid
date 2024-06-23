@@ -38,6 +38,14 @@ public:
    */
   bool loadBag(const std::string &bag_file);
 
+  void closeBag();
+
+  inline double getBagStartTime() { return bag_start_time_.toSec(); }
+  
+  inline double getBagEndTime() { return bag_end_time_.toSec(); }
+
+  std::vector<std::string> getImageTopics();
+
   std::vector<bag2vid::MessageInstancePtr> extractMessages(const std::string &topic, const std::string &camera_name);
 
   /**
@@ -77,6 +85,8 @@ private:
   // Bag start time and end time
   ros::Time bag_start_time_;
   ros::Time bag_end_time_;
+
+  std::vector<std::string> image_topics_;
 
   // Dictionay of image topics
   // Maps topic names to a vector of shared pointers to the image messages

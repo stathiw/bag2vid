@@ -138,6 +138,7 @@ add_library(${PROJECT_NAME} SHARED
   src/backend/Extractor.cpp
   src/frontend/Visualiser.cpp
   src/frontend/Timeline.cpp
+  src/frontend/VideoPlayer.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -162,13 +163,13 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp include/bag2vid/frontend/Timeline.hpp)
+qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp include/bag2vid/frontend/Timeline.hpp include/bag2vid/frontend/VideoPlayer.hpp)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(bag2vid_node nodes/bag2vid_node.cpp ${MOC_SOURCES})
-add_executable(bag2vid_gui nodes/bag2vid_gui.cpp src/frontend/Visualiser.cpp ${MOC_SOURCES})
+add_executable(bag2vid_gui nodes/bag2vid_gui.cpp src/frontend/Visualiser.cpp src/frontend/VideoPlayer.cpp ${MOC_SOURCES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

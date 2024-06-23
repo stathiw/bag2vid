@@ -24,6 +24,7 @@
 
 #include <bag2vid/backend/Extractor.hpp>
 #include <bag2vid/frontend/Timeline.hpp>
+#include <bag2vid/frontend/VideoPlayer.hpp>
 
 namespace bag2vid 
 {
@@ -43,6 +44,7 @@ private slots:
     void loadBag();
     void togglePlayPause();
     void extractVideo();
+    void updateTopicDropdown();
 
 private:
     std::unique_ptr<Extractor> extractor_;
@@ -51,8 +53,9 @@ private:
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
     QPushButton* extract_video_button_;
-    QMediaPlayer* media_player_;
-    QVideoWidget* video_widget_;
+    VideoPlayer* video_player_;
+    QThread* thread_;
+    QLabel* image_label_;
     TimelineWidget* timeline_widget_;
 
     bool is_playing_;
