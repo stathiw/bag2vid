@@ -28,7 +28,7 @@ Visualiser::Visualiser(QWidget *parent) :
 
     connect(video_player_, &VideoPlayer::newFrame, [this](const QImage& frame)
     {
-        std::cout << "New frame" << std::endl;
+        // std::cout << "New frame" << std::endl;
         // Resize image to fit window width
         QSize image_size = frame.size();
         // Set to 640 width
@@ -40,8 +40,14 @@ Visualiser::Visualiser(QWidget *parent) :
 
     connect(video_player_, &VideoPlayer::currentTimestamp, [this](float time)
     {
-        std::cout << "Current time: " << time << std::endl;
+        // std::cout << "Current time: " << time << std::endl;
         timeline_widget_->setCurrentTime(time);
+    });
+
+    connect(timeline_widget_, &TimelineWidget::currentTimeChanged, [this](double time)
+    {
+        // std::cout << "Seek to time: " << time << std::endl;
+        video_player_->seekToTime(time);
     });
 }
 
@@ -114,6 +120,11 @@ void Visualiser::loadBag()
         {
             topic_dropdown_->addItem(QString::fromStdString(topic));
         }
+        // Set start and end time of timeline
+        timeline_widget_->setBagStartTime(extractor_->getBagStartTime());
+        timeline_widget_->setBagEndTime(extractor_->getBagEndTime());
+        timeline_widget_->setStartTime(0.0);
+        timeline_widget_->setEndTime(extractor_->getBagEndTime() - extractor_->getBagStartTime());
     }
     else
     {

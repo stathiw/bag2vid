@@ -21,12 +21,12 @@ VideoPlayer::~VideoPlayer()
 {
 }
 
-void VideoPlayer::seekToTime(float time)
+void VideoPlayer::seekToTime(double time)
 {
     // Set current frame to the first frame after the time
     for (int i = 0; i < messages_.size(); i++)
     {
-        if (messages_[i]->getTime().toSec() >= time)
+        if (messages_[i]->getTime().toSec() >= time + start_time_)
         {
             current_frame_ = i;
             break;
@@ -46,7 +46,8 @@ void VideoPlayer::playback()
         {
             processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
         }
-        // emit currentTimestamp(messages_[current_frame_]->getTime().toSec() - start_time_);
+        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        emit currentTimestamp(frame_timestamp - start_time_);
         current_frame_++;
     }
 }
