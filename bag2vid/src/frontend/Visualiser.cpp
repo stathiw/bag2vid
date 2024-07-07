@@ -177,11 +177,34 @@ void Visualiser::extractVideo()
     std::cout << "Extract Video" << std::endl;
 
     // Get marker positions
-    float start_time = timeline_widget_->getStartTime();
-    float end_time = timeline_widget_->getEndTime();
+    double start_time = timeline_widget_->getStartTime() + extractor_->getBagStartTime();
+    double end_time = timeline_widget_->getEndTime() + extractor_->getBagStartTime();
 
     std::cout << "Start time: " << start_time << std::endl;
     std::cout << "End time: " << end_time << std::endl;
+
+    // Check start time is before end time
+    if (start_time >= end_time)
+    {
+        std::cout << "Invalid start and end times" << std::endl;
+        return;
+    }
+
+    // Select output file
+    QString video_path = QFileDialog::getSaveFileName(this, "Save video", QDir::homePath(), "Video files (*.avi)");
+    std::cout << "Video path: " << video_path.toStdString() << std::endl;
+
+    // Extract video
+    std::string camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+
+    if (extractor_->writeVideo(camera_name, ros::Time(start_time), ros::Time(end_time), video_path.toStdString()))
+    {
+        std::cout << "Video extracted successfully" << std::endl;
+    }
+    else
+    {
+        std::cout << "Failed to extract video" << std::endl;
+    }
 }
 
 } // namespace bag2vid

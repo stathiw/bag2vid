@@ -118,7 +118,6 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
     video_writer_.open(video_file, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), 30, image_size);
     std::cout << "Video writer opened" << std::endl;
 
-
     int count = 0;
     int total = 0;
     // Get number of frames between start_time and end_time
@@ -159,7 +158,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
             // Write frame to video
             video_writer_.write(image);
             count++;
-            if (count % 100 == 0)
+            if (count % 10 == 0)
             {
                 std::cout << count << " / " << total << " frames written" << " \r";
                 std::cout.flush();
@@ -168,6 +167,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
     }
 
     std::cout << "Video written to: " << video_file << std::endl;
+    video_writer_.release();
 
     return true;
 }
