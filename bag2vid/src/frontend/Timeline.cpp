@@ -42,19 +42,19 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 
     // Draw the start marker
     painter.setBrush(Qt::green);
-    int startMarkerX = start_time_ * (width() - 20) + 10;
+    int startMarkerX = (start_time_  / duration_) * (width() - 20) + 10;
     painter.drawRect(startMarkerX - 5, bar_height - marker_height, 10, marker_height);
     painter.drawText(startMarkerX - 20, bar_height + 20, QString::number(start_time_, 'f', 2));
 
     // Draw end marker
     painter.setBrush(Qt::red);
-    int endMarkerX = end_time_ * (width() - 20) + 10;
+    int endMarkerX = (end_time_ / duration_) * (width() - 20) + 10;
     painter.drawRect(endMarkerX - 5, bar_height - marker_height, 10, marker_height);
     painter.drawText(endMarkerX - 20, bar_height + 20, QString::number(end_time_, 'f', 2));
 
     // Draw current time marker
     painter.setBrush(Qt::blue);
-    int currentTimeMarkerX = current_time_ * (width() - 20) + 10;
+    int currentTimeMarkerX = (current_time_ / duration_) * (width() - 20) + 10;
     painter.drawRect(currentTimeMarkerX - 2, bar_height - marker_height - 10, 4, marker_height + 20);
     painter.drawText(currentTimeMarkerX - 20, bar_height - marker_height - 20, QString::number(current_time_, 'f', 2));
 }
@@ -62,21 +62,21 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 void TimelineWidget::mousePressEvent(QMouseEvent *event)
 {
     int mouseX = event->x();
-    
+
     // Check if mouse press is on start marker
-    int startMarkerX = start_time_ * (width() - 20) + 10;
+    int startMarkerX = (start_time_ / duration_) * (width() - 20) + 10;
     if (mouseX >= startMarkerX - 5 && mouseX <= startMarkerX + 5) {
         dragging_start_ = true;
     }
 
     // Check if mouse press is on end marker
-    int endMarkerX = end_time_ * (width() - 20) + 10;
+    int endMarkerX = (end_time_ / duration_) * (width() - 20) + 10;
     if (mouseX >= endMarkerX - 5 && mouseX <= endMarkerX + 5) {
         dragging_end_ = true;
     }
 
     // Check if mouse press is on current time marker
-    int currentTimeMarkerX = current_time_ * (width() - 20) + 10;
+    int currentTimeMarkerX = (current_time_ / duration_) * (width() - 20) + 10;
     if (mouseX >= currentTimeMarkerX - 2 && mouseX <= currentTimeMarkerX + 2) {
         dragging_timeline_ = true;
     }
@@ -92,6 +92,7 @@ void TimelineWidget::mouseMoveEvent(QMouseEvent* event) {
     } else if (dragging_timeline_) {
         updateMarkerPosition(current_time_, event->x());
         update();
+        emit currentTimeChanged(current_time_);
     }
 }
 
@@ -102,11 +103,12 @@ void TimelineWidget::mouseReleaseEvent(QMouseEvent *event)
     dragging_timeline_ = false;
 }
 
-void TimelineWidget::updateMarkerPosition(float& markerPos, int mouseX)
+void TimelineWidget::updateMarkerPosition(double& markerPos, int mouseX)
 {
-    markerPos = static_cast<float>(mouseX - 10) / (width() - 20);
+    markerPos = static_cast<double>(mouseX - 10) / (width() - 20);
     if (markerPos < 0.0) markerPos = 0.0;
     if (markerPos > 1.0) markerPos = 1.0;
+    markerPos = markerPos * duration_;
 }
 
 } // namespace bag2vid

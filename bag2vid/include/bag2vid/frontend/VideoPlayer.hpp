@@ -20,14 +20,14 @@ public:
     ~VideoPlayer();
 
 public slots:
-    void seekToTime(float time);
+    void seekToTime(double time);
     void play();
     void pause();
     void loadMessages(std::vector<std::shared_ptr<rosbag::MessageInstance> > messages);
 
 signals:
     void newFrame(const QImage &frame);
-    void currentTimestamp(float time);
+    void currentTimestamp(double time);
     void finishedPlaying();
 
 private slots:
@@ -37,8 +37,8 @@ private:
     bool is_playing_;
     //  Current frame iterator
     int current_frame_;
-    float start_time_;
-    float end_time_;
+    double start_time_;
+    double end_time_;
     QTimer playback_timer_;
     std::vector<std::shared_ptr<rosbag::MessageInstance> > messages_;
 
