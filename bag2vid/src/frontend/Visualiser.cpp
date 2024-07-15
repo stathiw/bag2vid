@@ -28,11 +28,7 @@ Visualiser::Visualiser(QWidget *parent) :
 
     connect(video_player_, &VideoPlayer::newFrame, [this](const QImage& frame)
     {
-        // std::cout << "New frame" << std::endl;
-        // Resize image to fit window width
-        QSize image_size = frame.size();
-        // Set to 640 width
-        QSize label_size = QSize(640, 480);
+        QSize label_size = image_label_->size();
 
         QImage resized_frame = frame.scaled(label_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         image_label_->setPixmap(QPixmap::fromImage(resized_frame));
@@ -53,6 +49,8 @@ Visualiser::Visualiser(QWidget *parent) :
 
 void Visualiser::setupUI()
 {
+    this->setMinimumSize(640, 480);
+
     // Set up the buttons
     load_bag_button_ = new QPushButton("Load Bag", this);
     topic_dropdown_ = new QComboBox(this);
@@ -65,6 +63,9 @@ void Visualiser::setupUI()
     // Set up the video widget
     video_player_ = new VideoPlayer(this);
     image_label_ = new QLabel(this);
+    image_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    image_label_->setMinimumSize(320, 240);
+    image_label_->setMaximumSize(1920, 1080);
 
     // Set up the layout
     QVBoxLayout* main_layout = new QVBoxLayout(this);
@@ -97,6 +98,18 @@ void Visualiser::setupUI()
 }
 
 Visualiser::~Visualiser() {}
+
+void Visualiser::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    if (image_label_->pixmap() != nullptr && !image_label_->pixmap()->isNull())
+    {
+        QSize label_size = image_label_->size();
+        QImage resized_frame = image_label_->pixmap()->toImage().scaled(label_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        image_label_->setPixmap(QPixmap::fromImage(resized_frame));
+    }
+}
 
 void Visualiser::loadBag()
 {

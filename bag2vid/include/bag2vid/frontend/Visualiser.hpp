@@ -46,6 +46,9 @@ private slots:
     void extractVideo();
     void updateTopicDropdown();
 
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+
 private:
     std::unique_ptr<Extractor> extractor_;
 
