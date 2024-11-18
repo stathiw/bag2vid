@@ -1,0 +1,19 @@
+# Docker compose file for ubuntu 18.04 ros melodic
+version: '3.9'
+
+services:
+  ros_melodic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROSBAG_SRC_FOLDER: ${ROSBAG_SRC}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${ROSBAG_SRC}:/home/user/rosbags
+    command: /bin/bash
+    environment:
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+    tty: true
+    privileged: true
