@@ -7,10 +7,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        ROSBAG_SRC_FOLDER: ${ROSBAG_SRC}
+        ROSBAG_SRC_FOLDER: ${BAG2VID_SRC}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${ROSBAG_SRC}:/home/user/rosbags
+      - ${BAG2VID_SRC}:/home/user/rosbags
     command: /bin/bash
     environment:
       - DISPLAY=${DISPLAY}
