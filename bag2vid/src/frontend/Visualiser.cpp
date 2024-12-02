@@ -204,7 +204,7 @@ void Visualiser::extractVideo()
     }
 
     // Select output file
-    QString video_path = QFileDialog::getSaveFileName(this, "Save video", QDir::homePath(), "Video files (*.avi)");
+    QString video_path = QFileDialog::getSaveFileName(this, "Save video", QDir::homePath(), "Video files (*.mp4)");
     std::cout << "Video path: " << video_path.toStdString() << std::endl;
 
     // Extract video
