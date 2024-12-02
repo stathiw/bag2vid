@@ -52,6 +52,7 @@ protected:
 private:
     std::unique_ptr<Extractor> extractor_;
 
+    QLabel* rosbag_filename_label_;
     QPushButton* load_bag_button_;
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
