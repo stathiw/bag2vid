@@ -124,6 +124,12 @@ void Visualiser::loadBag()
     // Reset extractor
     extractor_ = std::make_unique<Extractor>();
 
+    // Pause video player if playing
+    if (is_playing_)
+    {
+        togglePlayPause();
+    }
+
     // Select rosbag file
     QString rosbag_path = QFileDialog::getOpenFileName(this, "Open rosbag", QDir::homePath(), "Ros bag files (*.bag)");
     
