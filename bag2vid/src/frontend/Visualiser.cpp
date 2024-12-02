@@ -70,6 +70,11 @@ void Visualiser::setupUI()
     // Set up the layout
     QVBoxLayout* main_layout = new QVBoxLayout(this);
 
+    // Header layout
+    QHBoxLayout* header_layout = new QHBoxLayout();
+    rosbag_filename_label_ = new QLabel("", this);
+    header_layout->addWidget(rosbag_filename_label_);
+
     // Menu layout
     QHBoxLayout* top_layout = new QHBoxLayout();
     top_layout->addWidget(load_bag_button_);
@@ -90,6 +95,7 @@ void Visualiser::setupUI()
     // Allow the video to stretch to fill the available space
     video_layout->setAlignment(Qt::AlignCenter);
 
+    main_layout->addLayout(header_layout);
     main_layout->addLayout(top_layout);
     main_layout->addLayout(timeline_layout);
     main_layout->addLayout(video_layout);
@@ -125,6 +131,7 @@ void Visualiser::loadBag()
     if (extractor_->loadBag(rosbag_path.toStdString()))
     {
         std::cout << "Bag loaded successfully" << std::endl;
+        rosbag_filename_label_->setText("<b>" + rosbag_path + "</b>");
         topic_dropdown_->clear();
 
         // Get topics
