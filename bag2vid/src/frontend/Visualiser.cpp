@@ -136,6 +136,8 @@ void Visualiser::loadBag()
 
         // Get topics
         std::vector<std::string> topics = extractor_->getImageTopics();
+        // Sort topics
+        std::sort(topics.begin(), topics.end());
         for (const auto& topic : topics)
         {
             topic_dropdown_->addItem(QString::fromStdString(topic));
