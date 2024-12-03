@@ -81,6 +81,15 @@ void Visualiser::setupUI()
     top_layout->addWidget(topic_dropdown_);
     top_layout->addWidget(extract_video_button_);
 
+    // Video extraction progress bar
+    QHBoxLayout* progress_layout = new QHBoxLayout();
+    extraction_progress_bar_ = new QProgressBar(this);
+    extraction_progress_bar_->setMinimum(0);
+    extraction_progress_bar_->setMaximum(100);
+    extraction_progress_bar_->setValue(0);
+    extraction_progress_bar_->setTextVisible(true);
+    progress_layout->addWidget(extraction_progress_bar_);
+
     // Timeline layout
     QHBoxLayout* timeline_layout = new QHBoxLayout;
     play_pause_button_->setFixedWidth(50);
@@ -95,6 +104,7 @@ void Visualiser::setupUI()
     // Allow the video to stretch to fill the available space
     video_layout->setAlignment(Qt::AlignCenter);
 
+    main_layout->addLayout(progress_layout);
     main_layout->addLayout(header_layout);
     main_layout->addLayout(top_layout);
     main_layout->addLayout(timeline_layout);
@@ -235,14 +245,27 @@ void Visualiser::extractVideo()
     // Extract video
     std::string camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
 
+    extraction_progress_bar_->setValue(0);
+    // Set progress callback
+    extractor_->setProgressCallback([this](int progress)
+    {
+        updateProgressBar(progress);
+    });
+
     if (extractor_->writeVideo(camera_name, ros::Time(start_time), ros::Time(end_time), video_path.toStdString()))
     {
         std::cout << "Video extracted successfully" << std::endl;
+        extraction_progress_bar_->setValue(100);
     }
     else
     {
         std::cout << "Failed to extract video" << std::endl;
     }
+}
+
+void Visualiser::updateProgressBar(int progress)
+{
+    extraction_progress_bar_->setValue(progress);
 }
 
 } // namespace bag2vid
