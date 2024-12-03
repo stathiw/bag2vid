@@ -52,5 +52,4 @@ Press the **_Extract Video_** button and enter a file name and location to save 
 
 Drag the start (green) and end (red) time selection markers to select the times between which to extract a video.
 
-
-![bag2vid_gui](https://github.com/stathiw/bag2vid/assets/23045886/d850ef8c-31a2-49af-a3e7-5a62924afcab)
+![Screenshot from 2024-12-03 15-53-21](https://github.com/user-attachments/assets/4009fc04-6473-43cd-95dc-c735afc42814)
