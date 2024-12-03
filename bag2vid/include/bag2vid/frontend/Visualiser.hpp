@@ -19,6 +19,7 @@
 #include <QMediaPlayer>
 #include <QSlider>
 #include <QPushButton>
+#include <QProgressBar>
 
 #include <ros/ros.h>
 
@@ -57,14 +58,16 @@ private:
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
     QPushButton* extract_video_button_;
+    QProgressBar* extraction_progress_bar_;
+    TimelineWidget* timeline_widget_;
     VideoPlayer* video_player_;
     QThread* thread_;
-    QLabel* image_label_;
-    TimelineWidget* timeline_widget_;
+    QLabel* image_label_;    
 
     bool is_playing_;
 
     void setupUI();
+    void updateProgressBar(int progress);
 };
 } // namespace bag2vid
 

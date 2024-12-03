@@ -158,10 +158,11 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
             // Write frame to video
             video_writer_.write(image);
             count++;
-            if (count % 10 == 0)
+            if (count % 50 == 0)
             {
                 std::cout << count << " / " << total << " frames written" << " \r";
                 std::cout.flush();
+                progress_callback_(static_cast<int>(static_cast<double>(count) / total * 100));
             }
         }
     }
@@ -170,6 +171,11 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
     video_writer_.release();
 
     return true;
+}
+
+void Extractor::setProgressCallback(ProgressCallback callback)
+{
+    progress_callback_ = callback;
 }
 
 } // namespace bag2vid

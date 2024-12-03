@@ -11,6 +11,7 @@
 #include "bag2vid/Types.hpp"
 
 #include <iostream>
+#include <functional>
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/videoio.hpp>
@@ -27,8 +28,13 @@ namespace bag2vid
 class Extractor
 {
 public:
+  using ProgressCallback = std::function<void(int)>;
+
   inline Extractor() {}
-  inline ~Extractor() { bag_.close(); }
+  inline ~Extractor() { 
+    bag_.close();
+    progress_callback_ = nullptr;
+  }
 
   /**
    * @brief Loads the given rosbag file
@@ -76,6 +82,8 @@ public:
   bool writeVideo(const std::string &topic, const ros::Time &start_time,
                   const ros::Time &end_time, const std::string &video_file);
 
+  void setProgressCallback(ProgressCallback callback);
+
 private:
   rosbag::Bag bag_;
 
@@ -93,6 +101,8 @@ private:
   std::map<std::string, std::vector<bag2vid::MessageInstancePtr>> image_data_;
 
   cv::VideoWriter video_writer_;
+
+  ProgressCallback progress_callback_;
 };
 
 } // namespace bag2vid
