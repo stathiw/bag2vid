@@ -3,7 +3,7 @@
 
 # Variables
 BAG2VID_IMAGE="stathiw/bag2vid:latest"
-BAG2VID_SRC="/home/octopus/Hullbot_bag_files"  # Replace with the path to your ROS bags
+BAG2VID_SRC="/home/${USER}/Hullbot_bag_files"  # Replace with the path to your ROS bags
 
 # Add bag2vid script to bashrc
 echo "Adding bag2vid docker run alias to bashrc"
