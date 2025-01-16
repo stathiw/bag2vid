@@ -3,7 +3,7 @@
 # Variables
 BAG2VID_IMAGE="stathiw/bag2vid:latest"
 CONTAINER_NAME="bag2vid"
-BAG2VID_SRC="/home/octopus/Hullbot_bag_files"  # Replace with the path to your ROS bags
+BAG2VID_SRC="/home/${USER}/Hullbot_bag_files"  # Replace with the path to your ROS bags
 DISPLAY_VAR=${DISPLAY}
 
 # Run the Docker container
