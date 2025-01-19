@@ -17,3 +17,19 @@ services:
     network_mode: host
     tty: true
     privileged: true
+    
+  ros2_jazzy:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+      args:
+        ROSBAG_SRC_FOLDER: /Users/stathi/Downloads
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /Users/stathi/Downloads:/home/user/rosbags
+    command: /bin/bash
+    environment:
+      - DISPLAY=host.docker.internal:0
+    network_mode: host
+    tty: true
+    privileged: true

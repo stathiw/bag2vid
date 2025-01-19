@@ -1,0 +1,47 @@
+# Use the official ROS 2 Humble base image
+FROM ros:jazzy-ros-core-noble
+
+ARG ROSBAG_SRC_FOLDER
+
+RUN echo "ROSBAG_SRC: $ROSBAG_SRC_FOLDER"
+
+# Check if the ROSBAG_SRC argument is set
+RUN if [ -z "$ROSBAG_SRC_FOLDER" ]; then echo "ROSBAG_SRC argument is not set.\nPlease export ROSBAG_SRC=<path to rosbag src folder>."; exit 1; fi
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    build-essential \
+    qt6-base-dev \
+    qt6-multimedia-dev \
+    ros-jazzy-cv-bridge \
+    && rm -rf /var/lib/apt/lists/
+
+# Initialise rosdep
+RUN rosdep init \
+    && rosdep update
+
+# Create user user with password user
+RUN useradd -ms /bin/bash user
+
+# Create XDG_RUNTIME_DIR with correct permissions
+RUN mkdir -p /tmp/runtime-user && chown user:user /tmp/runtime-user && chmod 700 /tmp/runtime-user
+
+# Set the user
+USER user
+
+# Create a workspace
+RUN mkdir -p /home/user/ros2_ws/src
+
+# Set the workspace
+WORKDIR /home/user/ros2_ws
+
+# Copy the source code
+COPY . /home/user/ros2_ws/src/bag2vid2
+
+# Build the workspace
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && colcon build --packages-select bag2vid2"
+
+# Set the entrypoint
+ENTRYPOINT ["/bin/bash"]
