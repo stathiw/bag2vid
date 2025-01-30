@@ -19,6 +19,8 @@ public:
     explicit VideoPlayer(QObject *parent = nullptr);
     ~VideoPlayer();
 
+    int getCurrentFrameId() const { return current_frame_; }
+
 public slots:
     void seekToTime(double time);
     void play();

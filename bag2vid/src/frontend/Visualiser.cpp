@@ -25,6 +25,7 @@ Visualiser::Visualiser(QWidget *parent) :
     connect(play_pause_button_, &QPushButton::clicked, this, &Visualiser::togglePlayPause);
     connect(extract_video_button_, &QPushButton::clicked, this, &Visualiser::extractVideo);
     connect(topic_dropdown_, SIGNAL(currentIndexChanged(int)), this, SLOT(updateTopicDropdown()));
+    connect(capture_screenshot_button_, &QPushButton::clicked, this, &Visualiser::captureScreenshot);
 
     connect(video_player_, &VideoPlayer::newFrame, [this](const QImage& frame)
     {
@@ -56,6 +57,7 @@ void Visualiser::setupUI()
     topic_dropdown_ = new QComboBox(this);
     play_pause_button_ = new QPushButton("Play", this);
     extract_video_button_ = new QPushButton("Extract Video", this);
+    capture_screenshot_button_ = new QPushButton("Capture Screenshot", this);
 
     // Set up the timeline widget
     timeline_widget_ = new TimelineWidget(this);
@@ -80,6 +82,7 @@ void Visualiser::setupUI()
     top_layout->addWidget(load_bag_button_);
     top_layout->addWidget(topic_dropdown_);
     top_layout->addWidget(extract_video_button_);
+    top_layout->addWidget(capture_screenshot_button_);
 
     // Video extraction progress bar
     QHBoxLayout* progress_layout = new QHBoxLayout();
@@ -240,10 +243,20 @@ void Visualiser::extractVideo()
     {
         return;
     }
+    if (!video_path.endsWith(".mp4"))
+    {
+        video_path += ".mp4";
+    }
     std::cout << "Video path: " << video_path.toStdString() << std::endl;
 
     // Extract video
-    std::string camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+    std::string camera_name;
+    if (!topic_dropdown_->currentText().isEmpty()) {
+        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+    } else {
+        std::cout << "No topic selected" << std::endl;
+        return;
+    }
 
     extraction_progress_bar_->setValue(0);
     // Set progress callback
@@ -260,6 +273,49 @@ void Visualiser::extractVideo()
     else
     {
         std::cout << "Failed to extract video" << std::endl;
+    }
+}
+
+void Visualiser::captureScreenshot()
+{
+    std::cout << "Capture Screenshot" << std::endl;
+
+    // Select output file
+    QString screenshot_path = QFileDialog::getSaveFileName(this, "Save screenshot", QDir::homePath(), "Image files (*.png)");
+    // No file specified, cancel extraction
+    if (screenshot_path.isEmpty())
+    {
+        return;
+    }
+    // If no .png extension, add it
+    if (!screenshot_path.endsWith(".png"))
+    {
+        screenshot_path += ".png";
+    }
+
+    std::cout << "Screenshot path: " << screenshot_path.toStdString() << std::endl;
+
+    // Get id of current frame
+    int frame_id = video_player_->getCurrentFrameId();
+
+    // Get camera name
+    std::string camera_name;
+    if (!topic_dropdown_->currentText().isEmpty()) {
+        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+    } else {
+        std::cout << "No topic selected" << std::endl;
+        return;
+    }
+    std::cout << "Camera name: " << camera_name << std::endl;
+
+    // Capture screenshot
+    if (extractor_->captureScreenshot(camera_name, frame_id, screenshot_path.toStdString()))
+    {
+        std::cout << "Screenshot captured successfully" << std::endl;
+    }
+    else
+    {
+        std::cout << "Failed to capture screenshot" << std::endl;
     }
 }
 
