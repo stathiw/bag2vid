@@ -52,4 +52,6 @@ Press the **_Extract Video_** button and enter a file name and location to save 
 
 Drag the start (green) and end (red) time selection markers to select the times between which to extract a video.
 
-![Screenshot from 2024-12-03 15-53-21](https://github.com/user-attachments/assets/4009fc04-6473-43cd-95dc-c735afc42814)
+Press the **_Capture Screenhshot_** button to save the current frame as a png.
+
+![Screenshot from 2025-01-31 17-38-05](https://github.com/user-attachments/assets/da77686d-7cc9-47e7-90bd-b11bb74f710c)

@@ -46,6 +46,7 @@ private slots:
     void togglePlayPause();
     void extractVideo();
     void updateTopicDropdown();
+    void captureScreenshot();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -58,6 +59,7 @@ private:
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
     QPushButton* extract_video_button_;
+    QPushButton* capture_screenshot_button_;
     QProgressBar* extraction_progress_bar_;
     TimelineWidget* timeline_widget_;
     VideoPlayer* video_player_;

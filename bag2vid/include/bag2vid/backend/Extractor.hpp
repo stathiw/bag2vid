@@ -15,6 +15,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/videoio.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 #include <ros/ros.h>
 #include <rosbag/bag.h>
@@ -69,6 +70,15 @@ public:
    * @return A vector of shared pointers to the extracted compressed images
    */
   std::vector<bag2vid::CompressedImagePtr> extractCompressedImages(const std::string &topic);
+
+  /**
+   * @brief Captures a screenshot of the current video frame
+   *
+   * @param frame_id The frame id of the screenshot
+   * @param image_file The path to the image file
+   * @return True if the screenshot was captured successfully, false otherwise
+   */
+  bool captureScreenshot(const std::string& camera_name, const int &frame_id, const std::string &image_file);
 
   /**
    * @brief Writes to video between the given timestamps from the given topic

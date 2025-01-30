@@ -79,6 +79,45 @@ std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages
     return messages;
 }
 
+bool Extractor::captureScreenshot(const std::string& camera_name, const int &frame_id, const std::string& image_file)
+{
+    // Check we have data for the topic
+    if (image_data_.find(camera_name) == image_data_.end())
+    {
+        std::cerr << "No data found for topic: " << camera_name << std::endl;
+        return false;
+    }
+
+    std::string image_type = image_data_.at(camera_name).at(frame_id)->getDataType();
+    std::cout << "Image type: " << image_type << std::endl;
+
+    cv::Mat image;
+    if (image_type == "sensor_msgs/CompressedImage")
+    {
+        image = cv_bridge::toCvCopy(image_data_.at(camera_name).at(frame_id)->instantiate<sensor_msgs::CompressedImage>())->image;
+    }
+    else if (image_type == "sensor_msgs/Image")
+    {
+        image = cv_bridge::toCvCopy(image_data_.at(camera_name).at(frame_id)->instantiate<sensor_msgs::Image>())->image;
+    }
+    else
+    {
+        std::cerr << "Unsupported image type: " << image_type << std::endl;
+        return false;
+    }
+
+    try
+    {
+        cv::imwrite(image_file, image);
+    }
+    catch (cv::Exception& e)
+    {
+        std::cerr << "Error writing image: " << e.what() << std::endl;
+        return false;
+    }
+
+    return true;
+}
 
 bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& start_time, const ros::Time& end_time, const std::string& video_file)
 {
