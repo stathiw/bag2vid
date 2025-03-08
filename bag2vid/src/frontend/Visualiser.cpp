@@ -118,6 +118,25 @@ void Visualiser::setupUI()
 
 Visualiser::~Visualiser() {}
 
+void Visualiser::keyPressEvent(QKeyEvent *event)
+{
+    // Space bar toggles play/pause
+    if (event->key() == Qt::Key_Space)
+    {
+        togglePlayPause();
+    }
+    // Left moves current frame back 1 frame
+    else if (event->key() == Qt::Key_Left)
+    {
+        video_player_->seekBackward();
+    }
+    // Right arrow seeks forward 1 frame
+    else if (event->key() == Qt::Key_Right)
+    {
+        video_player_->seekForward();
+    }
+}
+
 void Visualiser::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);

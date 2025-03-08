@@ -67,6 +67,42 @@ void VideoPlayer::pause()
     playback_timer_.stop();
 }
 
+void VideoPlayer::seekBackward()
+{
+    if (current_frame_ > 0)
+    {
+        current_frame_--;
+        if (messages_[current_frame_]->isType<sensor_msgs::Image>())
+        {
+            processImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::Image>());
+        }
+        else if (messages_[current_frame_]->isType<sensor_msgs::CompressedImage>())
+        {
+            processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
+        }
+        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        emit currentTimestamp(frame_timestamp - start_time_);
+    }
+}
+
+void VideoPlayer::seekForward()
+{
+    if (current_frame_ < messages_.size())
+    {
+        if (messages_[current_frame_]->isType<sensor_msgs::Image>())
+        {
+            processImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::Image>());
+        }
+        else if (messages_[current_frame_]->isType<sensor_msgs::CompressedImage>())
+        {
+            processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
+        }
+        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        emit currentTimestamp(frame_timestamp - start_time_);
+        current_frame_++;
+    }
+}
+
 void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag::MessageInstance>> messages)
 {
     current_frame_ = 0;
