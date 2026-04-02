@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QColor>
 #include <QWidget>
 #include <QPainter>
 #include <QMouseEvent>
@@ -18,6 +19,11 @@ namespace bag2vid
 class TimelineWidget : public QWidget
 {
     Q_OBJECT
+    Q_PROPERTY(QColor barColor      READ barColor      WRITE setBarColor)
+    Q_PROPERTY(QColor startColor    READ startColor    WRITE setStartColor)
+    Q_PROPERTY(QColor endColor      READ endColor      WRITE setEndColor)
+    Q_PROPERTY(QColor playheadColor READ playheadColor WRITE setPlayheadColor)
+    Q_PROPERTY(QColor textColor     READ textColor     WRITE setTextColor)
 
 public:
     TimelineWidget(QWidget *parent = nullptr);
@@ -37,9 +43,19 @@ public:
     void setEndTime(double time) { end_time_ = time; update(); }
     void setCurrentTime(double time) { current_time_ = time; update(); }
 
+    QColor barColor()      const { return bar_color_; }
+    QColor startColor()    const { return start_color_; }
+    QColor endColor()      const { return end_color_; }
+    QColor playheadColor() const { return playhead_color_; }
+    QColor textColor()     const { return text_color_; }
+
+    void setBarColor(const QColor& c)      { bar_color_ = c; update(); }
+    void setStartColor(const QColor& c)    { start_color_ = c; update(); }
+    void setEndColor(const QColor& c)      { end_color_ = c; update(); }
+    void setPlayheadColor(const QColor& c) { playhead_color_ = c; update(); }
+    void setTextColor(const QColor& c)     { text_color_ = c; update(); }
+
 signals:
-    // void startTimeChanged(float time);
-    // void endTimeChanged(float time);
     void currentTimeChanged(double time);
 
 protected:
@@ -60,6 +76,12 @@ private:
     bool dragging_start_;
     bool dragging_end_;
     bool dragging_timeline_;
+
+    QColor bar_color_;
+    QColor start_color_;
+    QColor end_color_;
+    QColor playhead_color_;
+    QColor text_color_;
 
     void updateMarkerPosition(double& markerPos, int mouseX);
 };
