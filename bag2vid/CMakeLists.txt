@@ -164,12 +164,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 qt5_wrap_cpp(MOC_SOURCES include/bag2vid/frontend/Visualiser.hpp include/bag2vid/frontend/Timeline.hpp include/bag2vid/frontend/VideoPlayer.hpp)
+qt5_add_resources(QRC_SOURCES resources/resources.qrc)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(bag2vid_node nodes/bag2vid_node.cpp ${MOC_SOURCES})
-add_executable(bag2vid_gui nodes/bag2vid_gui.cpp src/frontend/Visualiser.cpp src/frontend/VideoPlayer.cpp ${MOC_SOURCES})
+add_executable(bag2vid_gui nodes/bag2vid_gui.cpp src/frontend/Visualiser.cpp src/frontend/VideoPlayer.cpp ${MOC_SOURCES} ${QRC_SOURCES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

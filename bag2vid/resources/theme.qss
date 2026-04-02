@@ -1,0 +1,57 @@
+/*
+ * bag2vid global stylesheet
+ * All application colours are defined here.
+ */
+
+QWidget {
+    background-color: #F5F7FA;
+    color: #2C3E50;
+}
+
+QPushButton {
+    background-color: #B8D4E8;
+    color: #2C3E50;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+}
+
+QPushButton:hover {
+    background-color: #9CC3DE;
+}
+
+QPushButton:pressed {
+    background-color: #7EB1D4;
+}
+
+QComboBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E6EA;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+QProgressBar {
+    background-color: #E2E6EA;
+    border: none;
+    border-radius: 4px;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #B8D4E8;
+    border-radius: 4px;
+}
+
+QLabel {
+    background-color: transparent;
+}
+
+/* Timeline custom painting colours */
+bag2vid--TimelineWidget {
+    qproperty-barColor: #E2E6EA;
+    qproperty-startColor: #B8D4E8;
+    qproperty-endColor: #7EB1D4;
+    qproperty-playheadColor: #9CC3DE;
+    qproperty-textColor: #2C3E50;
+}

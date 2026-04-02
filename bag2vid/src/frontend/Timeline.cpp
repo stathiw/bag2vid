@@ -32,30 +32,48 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 {
     // Draw the timeline
     QPainter painter(this);
-    painter.setPen(Qt::black);
-    
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(text_color_);
+
     int bar_height = 50;        // Height of the timeline bar
     int marker_height = 20;     // Height of the timeline markers
 
     // Draw the timeline bar
+    QPen bar_pen(bar_color_, 2);
+    painter.setPen(bar_pen);
     painter.drawLine(10, bar_height, width()-10, bar_height);
 
-    // Draw the start marker
-    painter.setBrush(Qt::green);
+    // Draw the start marker (right-pointing triangle)
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(start_color_);
     int startMarkerX = (start_time_  / duration_) * (width() - 20) + 10;
-    painter.drawRect(startMarkerX - 5, bar_height - marker_height, 10, marker_height);
+    int mid = bar_height - marker_height / 2;
+    QPolygon start_triangle;
+    start_triangle << QPoint(startMarkerX, bar_height - marker_height)
+                   << QPoint(startMarkerX + 10, mid)
+                   << QPoint(startMarkerX, bar_height);
+    painter.drawPolygon(start_triangle);
+    painter.setPen(text_color_);
     painter.drawText(startMarkerX - 20, bar_height + 20, QString::number(start_time_, 'f', 2));
 
-    // Draw end marker
-    painter.setBrush(Qt::red);
+    // Draw end marker (left-pointing triangle)
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(end_color_);
     int endMarkerX = (end_time_ / duration_) * (width() - 20) + 10;
-    painter.drawRect(endMarkerX - 5, bar_height - marker_height, 10, marker_height);
+    QPolygon end_triangle;
+    end_triangle << QPoint(endMarkerX, bar_height - marker_height)
+                 << QPoint(endMarkerX - 10, mid)
+                 << QPoint(endMarkerX, bar_height);
+    painter.drawPolygon(end_triangle);
+    painter.setPen(text_color_);
     painter.drawText(endMarkerX - 20, bar_height + 20, QString::number(end_time_, 'f', 2));
 
     // Draw current time marker
-    painter.setBrush(Qt::blue);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(playhead_color_);
     int currentTimeMarkerX = (current_time_ / duration_) * (width() - 20) + 10;
-    painter.drawRect(currentTimeMarkerX - 2, bar_height - marker_height - 10, 4, marker_height + 20);
+    painter.drawRoundedRect(currentTimeMarkerX - 2, bar_height - marker_height - 10, 4, marker_height + 20, 2, 2);
+    painter.setPen(text_color_);
     painter.drawText(currentTimeMarkerX - 20, bar_height - marker_height - 20, QString::number(current_time_, 'f', 2));
 }
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thread>
 
+#include <QFile>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFileDialog>
@@ -51,6 +52,12 @@ Visualiser::Visualiser(QWidget *parent) :
 void Visualiser::setupUI()
 {
     this->setMinimumSize(640, 480);
+    QFile styleFile(":/theme.qss");
+    if (styleFile.open(QFile::ReadOnly | QFile::Text))
+    {
+        this->setStyleSheet(styleFile.readAll());
+        styleFile.close();
+    }
 
     // Set up the buttons
     load_bag_button_ = new QPushButton("Load Bag", this);
@@ -95,7 +102,7 @@ void Visualiser::setupUI()
 
     // Timeline layout
     QHBoxLayout* timeline_layout = new QHBoxLayout;
-    play_pause_button_->setFixedWidth(50);
+    play_pause_button_->setFixedWidth(100);
     timeline_layout->addWidget(play_pause_button_);
     timeline_layout->addWidget(timeline_widget_);
     // Don't allow the timeline to stretch vertically if the window is resized

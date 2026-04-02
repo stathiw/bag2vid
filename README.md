@@ -52,6 +52,25 @@ Press the **_Extract Video_** button and enter a file name and location to save 
 
 Drag the start (green) and end (red) time selection markers to select the times between which to extract a video.
 
-Press the **_Capture Screenhshot_** button to save the current frame as a png.
+Press the **_Capture Screenshot_** button to save the current frame as a png.
 
-![Screenshot from 2025-01-31 17-38-05](https://github.com/user-attachments/assets/da77686d-7cc9-47e7-90bd-b11bb74f710c)
+![bag2vid](docs/images/bag2vid.png)
+
+## ⚖️ License & Terms of Use
+
+This project is licensed under a **Copyleft + Non-Commercial Redistribution** model.
+
+### 🟢 You CAN:
+* **Use it for work:** Use this tool internally at your company for free.
+* **Modify it:** Change the code to fit your needs (as long as those changes stay open-source).
+* **Share it:** Give the code to others, provided you keep my name on it and use this same license.
+
+### 🔴 You CANNOT:
+* **Sell it:** You cannot charge people to download this software.
+* **SaaS it:** You cannot build a website that charges people to use this software's features.
+* **Close the Source:** You cannot take this code and put it into a "closed" proprietary product.
+
+### 💰 Want to sell this?
+If you want to integrate this into a paid product or service, you need a **Commercial Waiver**. This will involve a royalty agreement or a licensing fee. 
+
+Reach out at: **stathi.weir@gmail.com**
