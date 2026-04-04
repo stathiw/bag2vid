@@ -25,7 +25,7 @@ Visualiser::Visualiser(QWidget *parent) :
     connect(load_bag_button_, &QPushButton::clicked, this, &Visualiser::loadBag);
     connect(play_pause_button_, &QPushButton::clicked, this, &Visualiser::togglePlayPause);
     connect(extract_video_button_, &QPushButton::clicked, this, &Visualiser::extractVideo);
-    connect(topic_dropdown_, SIGNAL(currentIndexChanged(int)), this, SLOT(updateTopicDropdown()));
+    connect(topic_dropdown_, &QComboBox::currentIndexChanged, this, &Visualiser::updateTopicDropdown);
     connect(capture_screenshot_button_, &QPushButton::clicked, this, &Visualiser::captureScreenshot);
 
     connect(video_player_, &VideoPlayer::newFrame, [this](const QImage& frame)
@@ -36,7 +36,7 @@ Visualiser::Visualiser(QWidget *parent) :
         image_label_->setPixmap(QPixmap::fromImage(resized_frame));
     });
 
-    connect(video_player_, &VideoPlayer::currentTimestamp, [this](float time)
+    connect(video_player_, &VideoPlayer::currentTimestamp, [this](double time)
     {
         // std::cout << "Current time: " << time << std::endl;
         timeline_widget_->setCurrentTime(time);
@@ -148,10 +148,10 @@ void Visualiser::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
 
-    if (image_label_->pixmap() != nullptr && !image_label_->pixmap()->isNull())
+    if (!image_label_->pixmap().isNull())
     {
         QSize label_size = image_label_->size();
-        QImage resized_frame = image_label_->pixmap()->toImage().scaled(label_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QImage resized_frame = image_label_->pixmap().toImage().scaled(label_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         image_label_->setPixmap(QPixmap::fromImage(resized_frame));
     }
 }
@@ -167,7 +167,7 @@ void Visualiser::loadBag()
     }
 
     // Select rosbag file
-    QString rosbag_path = QFileDialog::getOpenFileName(this, "Open rosbag", QDir::homePath(), "Ros bag files (*.bag)");
+    QString rosbag_path = QFileDialog::getOpenFileName(this, "Open rosbag", QDir::homePath(), "Rosbag files (*.bag *.mcap)");
 
     // No file specified, cancel load
     if (rosbag_path.isEmpty())
@@ -218,12 +218,16 @@ void Visualiser::updateTopicDropdown()
     // Load messages for the selected topic
     // camera name is first part of topic name (eg. /camera_2/image_raw_relay/compressed -> camera_2)
     std::string camera_name = current_topic.substr(1, current_topic.find("/", 1) - 1);
-    
+
     std::cout << "Extracting messages for camera: " << camera_name << std::endl;
-    std::vector<std::shared_ptr<rosbag::MessageInstance>> messages =
+    std::vector<bag2vid::MessageInstancePtr> messages =
       extractor_->extractMessages(topic_dropdown_->currentText().toStdString(), camera_name);
+
+    // Look up the message type for this topic
+    std::string message_type = extractor_->getTopicType(current_topic);
+
     // Load messages into video player
-    video_player_->loadMessages(messages);
+    video_player_->loadMessages(messages, message_type);
     std::cout << "Messages extracted" << std::endl;
 }
 
@@ -291,7 +295,7 @@ void Visualiser::extractVideo()
         updateProgressBar(progress);
     });
 
-    if (extractor_->writeVideo(camera_name, ros::Time(start_time), ros::Time(end_time), video_path.toStdString()))
+    if (extractor_->writeVideo(camera_name, start_time, end_time, video_path.toStdString()))
     {
         std::cout << "Video extracted successfully" << std::endl;
         extraction_progress_bar_->setValue(100);

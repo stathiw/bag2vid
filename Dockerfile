@@ -1,5 +1,5 @@
-# Ubuntu 18.04 ros melodic base image
-FROM ros:melodic-ros-core-bionic as base
+# Ubuntu 24.04 ROS 2 Jazzy base image
+FROM ros:jazzy-ros-core-noble as base
 
 ARG ROSBAG_SRC_FOLDER
 
@@ -10,53 +10,55 @@ RUN if [ -z "$ROSBAG_SRC_FOLDER" ]; then echo "ROSBAG_SRC argument is not set.\n
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-    python-catkin-tools \
-    python-rosdep \
-    python-rosinstall \
-    python-rosinstall-generator \
-    python-wstool \
+    python3-colcon-common-extensions \
+    python3-rosdep \
     build-essential \
-    qtmultimedia5-dev \
-    ros-melodic-cv-bridge \
+    qt6-base-dev \
+    qt6-multimedia-dev \
+    libqt6multimedia6 \
+    libopencv-dev \
+    libx264-dev \
+    ffmpeg \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-rosbag2-cpp \
+    ros-jazzy-rosbag2-storage-mcap \
+    ros-jazzy-rosbag2-storage-default-plugins \
+    ros-jazzy-sensor-msgs \
     && rm -rf /var/lib/apt/lists/
 
 # Initialise rosdep
 RUN rosdep init \
     && rosdep update
 
-# Create user user with password user
-RUN useradd -ms /bin/bash user
-
-# Create XDG_RUNTIME_DIR with correct permissions
-RUN mkdir -p /tmp/runtime-user && chown user:user /tmp/runtime-user && chmod 700 /tmp/runtime-user
+# Create XDG_RUNTIME_DIR with correct permissions for ubuntu user (UID 1000 in base image)
+RUN mkdir -p /tmp/runtime-ubuntu && chown ubuntu:ubuntu /tmp/runtime-ubuntu && chmod 700 /tmp/runtime-ubuntu
 
 # Set the user
-USER user
+USER ubuntu
 
 # Create a workspace
-RUN mkdir -p /home/user/catkin_ws/src
+RUN mkdir -p /home/ubuntu/ros2_ws/src
 
 # Set the workspace
-WORKDIR /home/user/catkin_ws
+WORKDIR /home/ubuntu/ros2_ws
 
 # Copy the source code
-COPY . /home/user/catkin_ws/src
+COPY . /home/ubuntu/ros2_ws/src/bag2vid
 
 USER root
 
 # Install dependencies
-RUN /bin/bash -c "source /opt/ros/melodic/setup.bash && rosdep install --from-paths src --ignore-src -r -y"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && rosdep install --from-paths src --ignore-src -r -y"
 
 # Set the user
-USER user
+USER ubuntu
 
 # Build the workspace
-RUN /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin build"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && colcon build --packages-select bag2vid"
 
-ENV XDG_RUNTIME_DIR=/tmp/runtime-user
+ENV XDG_RUNTIME_DIR=/tmp/runtime-ubuntu
 
 # Source the workspace
-RUN echo "source /home/user/catkin_ws/devel/setup.bash" >> /home/user/.bashrc
+RUN echo "source /home/ubuntu/ros2_ws/install/setup.bash" >> /home/ubuntu/.bashrc
 # Set the entrypoint
-# CMD ["/bin/bash"]
-ENTRYPOINT [ "bash", "-c", "source /home/user/catkin_ws/devel/setup.bash && rosrun bag2vid bag2vid_gui" ]
+ENTRYPOINT [ "bash", "-c", "source /home/ubuntu/ros2_ws/install/setup.bash && ros2 run bag2vid bag2vid_gui" ]

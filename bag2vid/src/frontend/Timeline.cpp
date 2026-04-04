@@ -79,7 +79,7 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 
 void TimelineWidget::mousePressEvent(QMouseEvent *event)
 {
-    int mouseX = event->x();
+    int mouseX = static_cast<int>(event->position().x());
 
     // Check if mouse press is on start marker
     int startMarkerX = (start_time_ / duration_) * (width() - 20) + 10;
@@ -102,13 +102,13 @@ void TimelineWidget::mousePressEvent(QMouseEvent *event)
 
 void TimelineWidget::mouseMoveEvent(QMouseEvent* event) {
     if (dragging_start_) {
-        updateMarkerPosition(start_time_, event->x());
+        updateMarkerPosition(start_time_, static_cast<int>(event->position().x()));
         update();
     } else if (dragging_end_) {
-        updateMarkerPosition(end_time_, event->x());
+        updateMarkerPosition(end_time_, static_cast<int>(event->position().x()));
         update();
     } else if (dragging_timeline_) {
-        updateMarkerPosition(current_time_, event->x());
+        updateMarkerPosition(current_time_, static_cast<int>(event->position().x()));
         update();
         emit currentTimeChanged(current_time_);
     }

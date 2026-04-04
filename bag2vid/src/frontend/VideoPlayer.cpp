@@ -4,8 +4,6 @@
 #include <QImage>
 #include <QThread>
 
-#include <cv_bridge/cv_bridge.h>
-
 
 VideoPlayer::VideoPlayer(QObject *parent) :
     QObject(parent),
@@ -24,9 +22,10 @@ VideoPlayer::~VideoPlayer()
 void VideoPlayer::seekToTime(double time)
 {
     // Set current frame to the first frame after the time
-    for (int i = 0; i < messages_.size(); i++)
+    for (size_t i = 0; i < messages_.size(); i++)
     {
-        if (messages_[i]->getTime().toSec() >= time + start_time_)
+        double msg_time = static_cast<double>(messages_[i]->recv_timestamp) / 1e9;
+        if (msg_time >= time + start_time_)
         {
             current_frame_ = i;
             break;
@@ -34,19 +33,35 @@ void VideoPlayer::seekToTime(double time)
     }
 }
 
+void VideoPlayer::processFrame(int index)
+{
+    if (index < 0 || index >= static_cast<int>(messages_.size()))
+        return;
+
+    rclcpp::SerializedMessage serialized_msg(*messages_[index]->serialized_data);
+
+    if (message_type_ == "sensor_msgs/msg/Image")
+    {
+        auto ros_image = std::make_shared<sensor_msgs::msg::Image>();
+        rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
+        serializer.deserialize_message(&serialized_msg, ros_image.get());
+        processImageMessage(ros_image);
+    }
+    else if (message_type_ == "sensor_msgs/msg/CompressedImage")
+    {
+        auto ros_compressed = std::make_shared<sensor_msgs::msg::CompressedImage>();
+        rclcpp::Serialization<sensor_msgs::msg::CompressedImage> serializer;
+        serializer.deserialize_message(&serialized_msg, ros_compressed.get());
+        processCompressedImageMessage(ros_compressed);
+    }
+}
+
 void VideoPlayer::playback()
 {
-    if (is_playing_ && current_frame_ < messages_.size())
+    if (is_playing_ && current_frame_ < static_cast<int>(messages_.size()))
     {
-        if (messages_[current_frame_]->isType<sensor_msgs::Image>())
-        {
-            processImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::Image>());
-        }
-        else if (messages_[current_frame_]->isType<sensor_msgs::CompressedImage>())
-        {
-            processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
-        }
-        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        processFrame(current_frame_);
+        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
         emit currentTimestamp(frame_timestamp - start_time_);
         current_frame_++;
     }
@@ -72,59 +87,40 @@ void VideoPlayer::seekBackward()
     if (current_frame_ > 0)
     {
         current_frame_--;
-        if (messages_[current_frame_]->isType<sensor_msgs::Image>())
-        {
-            processImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::Image>());
-        }
-        else if (messages_[current_frame_]->isType<sensor_msgs::CompressedImage>())
-        {
-            processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
-        }
-        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        processFrame(current_frame_);
+        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
         emit currentTimestamp(frame_timestamp - start_time_);
     }
 }
 
 void VideoPlayer::seekForward()
 {
-    if (current_frame_ < messages_.size())
+    if (current_frame_ < static_cast<int>(messages_.size()))
     {
-        if (messages_[current_frame_]->isType<sensor_msgs::Image>())
-        {
-            processImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::Image>());
-        }
-        else if (messages_[current_frame_]->isType<sensor_msgs::CompressedImage>())
-        {
-            processCompressedImageMessage(messages_[current_frame_]->instantiate<sensor_msgs::CompressedImage>());
-        }
-        double frame_timestamp = messages_[current_frame_]->getTime().toSec();
+        processFrame(current_frame_);
+        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
         emit currentTimestamp(frame_timestamp - start_time_);
         current_frame_++;
     }
 }
 
-void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag::MessageInstance>> messages)
+void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages,
+                                const std::string& message_type)
 {
     current_frame_ = 0;
     messages_ = messages;
-    start_time_ = messages[0]->getTime().toSec();
-    end_time_ = messages[messages.size() - 1]->getTime().toSec();
-    // Process first frame
-    if (messages_.size() > 0)
+    message_type_ = message_type;
+    if (messages_.empty())
     {
-        // Process first frame
-        if (messages_[0]->isType<sensor_msgs::Image>())
-        {
-            processImageMessage(messages_[0]->instantiate<sensor_msgs::Image>());
-        }
-        else if (messages_[0]->isType<sensor_msgs::CompressedImage>())
-        {
-            processCompressedImageMessage(messages_[0]->instantiate<sensor_msgs::CompressedImage>());
-        }
+        return;
     }
+    start_time_ = static_cast<double>(messages_[0]->recv_timestamp) / 1e9;
+    end_time_ = static_cast<double>(messages_[messages_.size() - 1]->recv_timestamp) / 1e9;
+    // Process first frame
+    processFrame(0);
 }
 
-void VideoPlayer::processImageMessage(const sensor_msgs::Image::ConstPtr &msg)
+void VideoPlayer::processImageMessage(const sensor_msgs::msg::Image::SharedPtr &msg)
 {
     if (msg != nullptr)
     {
@@ -132,7 +128,7 @@ void VideoPlayer::processImageMessage(const sensor_msgs::Image::ConstPtr &msg)
     }
 }
 
-void VideoPlayer::processCompressedImageMessage(const sensor_msgs::CompressedImage::ConstPtr &msg)
+void VideoPlayer::processCompressedImageMessage(const sensor_msgs::msg::CompressedImage::SharedPtr &msg)
 {
     if (msg != nullptr)
     {
