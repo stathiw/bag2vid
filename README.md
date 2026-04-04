@@ -1,7 +1,7 @@
 # bag2vid
 A GUI tool to extract videos from a rosbag. Supports ROS 2 Jazzy with MCAP bag formats.
 
-> **Looking for the ROS 1 (Melodic) version?** See the [`ros1/melodic`](https://github.com/stathiw/bag2vid/tree/ros1/melodic) branch.
+> **Looking for the ROS 1 (Melodic) version?** See the [`ros/melodic`](https://github.com/stathiw/bag2vid/tree/ros1/melodic) branch.
 
 
 
