@@ -9,19 +9,27 @@ bool Extractor::loadBag(const std::string& bag_file)
     // Open the bag file
     try
     {
-        bag_.open(bag_file, rosbag::bagmode::Read);
+        reader_ = std::make_unique<rosbag2_cpp::Reader>();
+        rosbag2_storage::StorageOptions storage_options;
+        storage_options.uri = bag_file;
+        storage_options.storage_id = "";  // auto-detect format (mcap, sqlite3, etc.)
+
+        bag_file_ = bag_file;
+        reader_->open(storage_options);
+
         // Find the image topics in the bag
-        rosbag::View view(bag_);
-        for (const rosbag::ConnectionInfo* info : view.getConnections())
+        auto topics_and_types = reader_->get_all_topics_and_types();
+        for (const auto& topic_info : topics_and_types)
         {
-            if (info->datatype == "sensor_msgs/Image" || info->datatype == "sensor_msgs/CompressedImage")
+            if (topic_info.type == "sensor_msgs/msg/Image" || topic_info.type == "sensor_msgs/msg/CompressedImage")
             {
-                std::cout << "Found topic: " << info->topic << std::endl;
-                image_topics_.push_back(info->topic);
+                std::cout << "Found topic: " << topic_info.name << std::endl;
+                image_topics_.push_back(topic_info.name);
+                topic_type_map_[topic_info.name] = topic_info.type;
             }
         }
     }
-    catch (rosbag::BagIOException& e)
+    catch (const std::exception& e)
     {
         std::cerr << "Error opening bag file: " << e.what() << std::endl;
         return false;
@@ -33,9 +41,11 @@ bool Extractor::loadBag(const std::string& bag_file)
 void Extractor::closeBag()
 {
     // Close the bag file and clear the image data
-    bag_.close();
+    reader_.reset();
     image_data_.clear();
     image_topics_.clear();
+    topic_type_map_.clear();
+    camera_topic_map_.clear();
 }
 
 std::vector<std::string> Extractor::getImageTopics()
@@ -43,7 +53,17 @@ std::vector<std::string> Extractor::getImageTopics()
     return image_topics_;
 }
 
-std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
+std::string Extractor::getTopicType(const std::string& topic)
+{
+    auto it = topic_type_map_.find(topic);
+    if (it != topic_type_map_.end())
+    {
+        return it->second;
+    }
+    return "";
+}
+
+std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
 {
     // Check if we have already extracted messages for this topic
     if (image_data_.find(camera_name) != image_data_.end())
@@ -52,31 +72,73 @@ std::vector<std::shared_ptr<rosbag::MessageInstance>> Extractor::extractMessages
         return image_data_.at(camera_name);
     }
 
-    std::vector<std::shared_ptr<rosbag::MessageInstance>> messages;
-    
-    // Get the list of topics in the bag
-    std::vector<std::string> topics;
-    topics.push_back(topic);
+    std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages;
 
-    // Create a view for the topic
-    rosbag::View view(bag_, rosbag::TopicQuery(topics));
+    // Re-open the reader to reset the iterator position
+    rosbag2_storage::StorageOptions storage_options;
+    storage_options.uri = bag_file_;
+    storage_options.storage_id = "";
 
-    // Get begin and end times
-    bag_start_time_ = view.getBeginTime();
-    bag_end_time_ = view.getEndTime();
-    std::cout << "Start time: " << bag_start_time_ << std::endl;
-    std::cout << "End time: " << bag_end_time_ << std::endl;
+    auto topic_reader = std::make_unique<rosbag2_cpp::Reader>();
+    topic_reader->open(storage_options);
+
+    // Set filter to only read this topic
+    rosbag2_storage::StorageFilter filter;
+    filter.topics.push_back(topic);
+    topic_reader->set_filter(filter);
+
+    bool first_msg = true;
 
     // Extract the messages
-    for (const rosbag::MessageInstance& m : view)
+    while (topic_reader->has_next())
     {
-        messages.push_back(std::make_shared<rosbag::MessageInstance>(m));
+        auto msg = topic_reader->read_next();
+
+        double timestamp_sec = static_cast<double>(msg->recv_timestamp) / 1e9;
+
+        if (first_msg)
+        {
+            bag_start_time_sec_ = timestamp_sec;
+            first_msg = false;
+        }
+        bag_end_time_sec_ = timestamp_sec;
+
+        messages.push_back(msg);
     }
+
+    std::cout << "Start time: " << bag_start_time_sec_ << std::endl;
+    std::cout << "End time: " << bag_end_time_sec_ << std::endl;
 
     // Add messages to the image_data_ map
     image_data_[camera_name] = messages;
+    camera_topic_map_[camera_name] = topic;
 
     return messages;
+}
+
+cv::Mat Extractor::deserializeToImage(const bag2vid::MessageInstancePtr& msg, const std::string& type_str)
+{
+    rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
+
+    if (type_str == "sensor_msgs/msg/CompressedImage")
+    {
+        sensor_msgs::msg::CompressedImage ros_compressed;
+        rclcpp::Serialization<sensor_msgs::msg::CompressedImage> serializer;
+        serializer.deserialize_message(&serialized_msg, &ros_compressed);
+        return cv_bridge::toCvCopy(ros_compressed)->image;
+    }
+    else if (type_str == "sensor_msgs/msg/Image")
+    {
+        sensor_msgs::msg::Image ros_image;
+        rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
+        serializer.deserialize_message(&serialized_msg, &ros_image);
+        return cv_bridge::toCvCopy(ros_image)->image;
+    }
+    else
+    {
+        std::cerr << "Unsupported image type: " << type_str << std::endl;
+        return cv::Mat();
+    }
 }
 
 bool Extractor::captureScreenshot(const std::string& camera_name, const int &frame_id, const std::string& image_file)
@@ -88,21 +150,13 @@ bool Extractor::captureScreenshot(const std::string& camera_name, const int &fra
         return false;
     }
 
-    std::string image_type = image_data_.at(camera_name).at(frame_id)->getDataType();
+    // Look up the message type from the topic
+    std::string image_type = getTopicType(camera_topic_map_[camera_name]);
     std::cout << "Image type: " << image_type << std::endl;
 
-    cv::Mat image;
-    if (image_type == "sensor_msgs/CompressedImage")
+    cv::Mat image = deserializeToImage(image_data_.at(camera_name).at(frame_id), image_type);
+    if (image.empty())
     {
-        image = cv_bridge::toCvCopy(image_data_.at(camera_name).at(frame_id)->instantiate<sensor_msgs::CompressedImage>())->image;
-    }
-    else if (image_type == "sensor_msgs/Image")
-    {
-        image = cv_bridge::toCvCopy(image_data_.at(camera_name).at(frame_id)->instantiate<sensor_msgs::Image>())->image;
-    }
-    else
-    {
-        std::cerr << "Unsupported image type: " << image_type << std::endl;
         return false;
     }
 
@@ -119,7 +173,7 @@ bool Extractor::captureScreenshot(const std::string& camera_name, const int &fra
     return true;
 }
 
-bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& start_time, const ros::Time& end_time, const std::string& video_file)
+bool Extractor::writeVideo(const std::string& camera_name, const double& start_time, const double& end_time, const std::string& video_file)
 {
     // Write frames with timestamps start_time <= t < end_time to a video file
     std::cout << "Writing video for topic: " << camera_name << std::endl;
@@ -131,29 +185,20 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
         return false;
     }
 
-    // Get image type from first image
-    std::string image_type = image_data_.at(camera_name).front()->getDataType();
+    // Look up the message type from the topic
+    std::string image_type = getTopicType(camera_topic_map_[camera_name]);
     std::cout << "Image type: " << image_type << std::endl;
 
-    // Get image size from first image.  Use image_type to determine how to convert to cv::Mat
-    cv::Mat first_image;
-    if (image_type == "sensor_msgs/CompressedImage")
+    // Get image size from first image
+    cv::Mat first_image = deserializeToImage(image_data_.at(camera_name).front(), image_type);
+    if (first_image.empty())
     {
-        first_image = cv_bridge::toCvCopy(image_data_.at(camera_name).front()->instantiate<sensor_msgs::CompressedImage>())->image;
-    }
-    else if (image_type == "sensor_msgs/Image")
-    {
-        first_image = cv_bridge::toCvCopy(image_data_.at(camera_name).front()->instantiate<sensor_msgs::Image>())->image;
-    }
-    else
-    {
-        std::cerr << "Unsupported image type: " << image_type << std::endl;
         return false;
     }
     cv::Size image_size(first_image.cols, first_image.rows);
     std::cout << "Image size: " << image_size << std::endl;
-    
-    // Open the video writer.  Write to .mp4 file with H265 codec
+
+    // Open the video writer.  Write to .mp4 file with H264 codec
     video_writer_.open(video_file, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), 30, image_size);
     std::cout << "Video writer opened" << std::endl;
 
@@ -162,11 +207,12 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
     // Get number of frames between start_time and end_time
     for (const auto& msg : image_data_.at(camera_name))
     {
-        if (msg->getTime() > end_time)
+        double msg_time = static_cast<double>(msg->recv_timestamp) / 1e9;
+        if (msg_time > end_time)
         {
             break;
         }
-        else if (msg->getTime() >= start_time)
+        else if (msg_time >= start_time)
         {
             total++;
         }
@@ -175,25 +221,19 @@ bool Extractor::writeVideo(const std::string& camera_name, const ros::Time& star
 
     for (const auto& msg : image_data_.at(camera_name))
     {
+        double msg_time = static_cast<double>(msg->recv_timestamp) / 1e9;
+
         // Check if message is within the time range.
         // If start_time == end_time, write all frames
-        if (msg->getTime() >= start_time && msg->getTime() < end_time || start_time == end_time)
+        if (msg_time >= start_time && msg_time < end_time || start_time == end_time)
         {
             // Convert the message to an image
-            cv::Mat image;
-            if (image_type == "sensor_msgs/CompressedImage")
+            cv::Mat image = deserializeToImage(msg, image_type);
+            if (image.empty())
             {
-                image = cv_bridge::toCvCopy(msg->instantiate<sensor_msgs::CompressedImage>())->image;
-            }
-            else if (image_type == "sensor_msgs/Image")
-            {
-                image = cv_bridge::toCvCopy(msg->instantiate<sensor_msgs::Image>())->image;
-            }
-            else
-            {
-                std::cerr << "Unsupported image type: " << image_type << std::endl;
                 return false;
             }
+
             // Write frame to video
             video_writer_.write(image);
             count++;

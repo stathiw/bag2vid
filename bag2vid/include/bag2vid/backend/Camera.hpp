@@ -3,18 +3,18 @@
  * @author Stathi Weir (stathi.weir@gmail.com)
  * @brief
  * @version 0.1
- * @date 2024-06-09 
+ * @date 2024-06-09
  */
 
 #pragma once
 
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
+#include <string>
+#include <vector>
+#include <memory>
 
-#include <sensor_msgs/CompressedImage.h>
-#include <sensor_msgs/Image.h>
+#include <rosbag2_storage/serialized_bag_message.hpp>
 
-namespace bag2vid 
+namespace bag2vid
 {
 class Camera
 {
@@ -28,7 +28,7 @@ class Camera
      * @brief Add messages to the camera
      */
     void addMessages(
-        const std::vector<std::shared_ptr<rosbag::MessageInstance>> &messages);
+        const std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> &messages);
 
     /**
      * @brief Get the name of the camera
@@ -46,19 +46,19 @@ class Camera
     inline std::string getImageType() const { return image_type_; }
 
     /**
-     * @brief Get the start time of the camera
+     * @brief Get the start time of the camera (seconds)
      */
-    inline ros::Time getStartTime() const { return start_time_; }
+    inline double getStartTime() const { return start_time_; }
 
     /**
-     * @brief Get the end time of the camera
+     * @brief Get the end time of the camera (seconds)
      */
-    inline ros::Time getEndTime() const { return end_time_; }
+    inline double getEndTime() const { return end_time_; }
 
     /**
      * @brief Get the messages of the camera
      */
-    inline std::vector<std::shared_ptr<rosbag::MessageInstance>>
+    inline std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>>
     getMessages() const {
       return messages_;
     }
@@ -68,10 +68,10 @@ class Camera
     std::string topic_;
     std::string image_type_;
 
-    ros::Time start_time_;
-    ros::Time end_time_;
+    double start_time_;
+    double end_time_;
 
-    std::vector<std::shared_ptr<rosbag::MessageInstance>> messages_;
+    std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages_;
 };
 
 } // namespace bag2vid

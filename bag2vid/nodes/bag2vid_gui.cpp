@@ -1,8 +1,6 @@
 
 #include <QApplication>
 
-#include <ros/ros.h>
-
 #include "bag2vid/frontend/Visualiser.hpp"
 
 int main(int argc, char** argv)

@@ -9,25 +9,20 @@
 
 #include <iostream>
 
-#include <QMainWindow>
-#include <QVideoWidget>
 #include <QFileDialog>
 #include <QLabel>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QMediaPlayer>
 #include <QSlider>
 #include <QPushButton>
 #include <QProgressBar>
-
-#include <ros/ros.h>
 
 #include <bag2vid/backend/Extractor.hpp>
 #include <bag2vid/frontend/Timeline.hpp>
 #include <bag2vid/frontend/VideoPlayer.hpp>
 
-namespace bag2vid 
+namespace bag2vid
 {
 
 class Visualiser : public QWidget
@@ -44,46 +39,46 @@ public:
 private slots:
     /**
      * @brief Load a rosbag file into the video extractor.
-     * 
+     *
      */
     void loadBag();
 
     /**
      * @brief Toggle the play/pause state of the video player.
-     * 
+     *
      */
     void togglePlayPause();
-    
+
     /**
      * @brief Extract the video from the rosbag file for the selected topic between the selected start and end times.
-     * 
+     *
      */
     void extractVideo();
-    
+
     /**
      * @brief Update the dropdown list of topics from the loaded rosbag file.
-     * 
+     *
      */
     void updateTopicDropdown();
 
     /**
      * @brief Capture a screenshot of the current frame.
-     * 
+     *
      */
     void captureScreenshot();
 
 protected:
     /**
      * @brief Resize event handler.
-     * 
-     * @param event 
+     *
+     * @param event
      */
     void resizeEvent(QResizeEvent *event) override;
-    
+
     /**
      * @brief Key press event handler.
-     * 
-     * @param event 
+     *
+     * @param event
      */
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -110,15 +105,14 @@ private:
 
     /**
      * @brief Set up the GUI elements.
-     * 
+     *
      */
     void setupUI();
 
     /**
-     * @brief Update the progress bar 
-     * 
+     * @brief Update the progress bar
+     *
      */
     void updateProgressBar(int progress);
 };
 } // namespace bag2vid
-

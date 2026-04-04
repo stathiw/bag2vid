@@ -1,8 +1,7 @@
-# Docker compose file for ubuntu 18.04 ros melodic
-version: '3.9'
+# Docker compose file for Ubuntu 24.04 ROS 2 Jazzy
 
 services:
-  ros_melodic:
+  ros_jazzy:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,7 +9,7 @@ services:
         ROSBAG_SRC_FOLDER: ${BAG2VID_SRC}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${BAG2VID_SRC}:/home/user/rosbags
+      - ${BAG2VID_SRC}:/home/ubuntu/rosbags
     command: /bin/bash
     environment:
       - DISPLAY=${DISPLAY}
