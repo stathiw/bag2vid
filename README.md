@@ -42,7 +42,7 @@ bag2vid
 or
 ```
 cd bag2vid
-docker compose run ros_melodic rosrun bag2vid bag2vid_gui
+docker compose up
 ```
 
 #### How to use
