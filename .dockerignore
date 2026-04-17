@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Docs and repo metadata
+docs/
+README.md
+LICENSE
+
+# Docker files (not needed inside the image)
+Dockerfile
+.dockerignore
+docker-compose.yaml
+
+# Local build artifacts
+build/
+install/
+log/
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
