@@ -5,14 +5,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        ROSBAG_SRC_FOLDER: ${BAG2VID_SRC}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${BAG2VID_SRC}:/home/ubuntu/rosbags
+      - ${HOME}:${HOME}
     command: /bin/bash
     environment:
       - DISPLAY=${DISPLAY}
+      - HOME=${HOME}
     network_mode: host
     tty: true
     privileged: true
