@@ -3,7 +3,6 @@
 
 # Variables
 BAG2VID_IMAGE="stathiw/bag2vid:latest"
-BAG2VID_SRC="/home/${USER}/rosbags"  # Replace with the path to your ROS bags
 
 # Add bag2vid script to bashrc
 echo "Adding bag2vid docker run alias to bashrc"
@@ -18,14 +17,14 @@ echo "" >> ~/.bashrc
 echo "# bag2vid alias" >> ~/.bashrc
 
 echo "BAG2VID_IMAGE=${BAG2VID_IMAGE}" >> ~/.bashrc
-echo "BAG2VID_SRC=${BAG2VID_SRC}" >> ~/.bashrc
 
 echo "bag2vid() {" >> ~/.bashrc
 echo "    docker run -it --rm \\" >> ~/.bashrc
 echo "    --name bag2vid \\" >> ~/.bashrc
-echo "    --env DISPLAY=${DISPLAY} \\" >> ~/.bashrc
+echo "    --env DISPLAY=\${DISPLAY} \\" >> ~/.bashrc
+echo "    --env HOME=\${HOME} \\" >> ~/.bashrc
 echo "    --volume /tmp/.X11-unix:/tmp/.X11-unix \\" >> ~/.bashrc
-echo "    --volume \${BAG2VID_SRC}:/home/ubuntu/rosbags \\" >> ~/.bashrc
+echo "    --volume \${HOME}:\${HOME} \\" >> ~/.bashrc
 echo "    --network host \\" >> ~/.bashrc
 echo "    --privileged \\" >> ~/.bashrc
 echo "    \${BAG2VID_IMAGE} \\" >> ~/.bashrc

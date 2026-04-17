@@ -15,17 +15,12 @@ git clone git@github.com:stathiw/bag2vid.git
 cd bag2vid/scripts
 ./install.sh
 ```
-3. Modify the environment variables in the bashrc to correctly reference your rosbag source folder and bag2vid image tag.
 
 ## Build
 
 ### Docker
 
-1. Set rosbag src folder
-```
-export BAG2VID_SRC=/path/to/rosbag_src
-```
-2. Build or pull the docker image
+Build or pull the docker image:
 ```
 cd bag2vid
 docker compose build
