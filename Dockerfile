@@ -1,15 +1,8 @@
 # Ubuntu 24.04 ROS 2 Jazzy base image
 FROM ros:jazzy-ros-core-noble as base
 
-ARG ROSBAG_SRC_FOLDER
-
-RUN echo "ROSBAG_SRC: $ROSBAG_SRC_FOLDER"
-
-# Check if the ROSBAG_SRC argument is set
-RUN if [ -z "$ROSBAG_SRC_FOLDER" ]; then echo "ROSBAG_SRC argument is not set.\nPlease export ROSBAG_SRC=<path to rosbag src folder>."; exit 1; fi
-
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-colcon-common-extensions \
     python3-rosdep \
     build-essential \
@@ -33,27 +26,20 @@ RUN rosdep init \
 # Create XDG_RUNTIME_DIR with correct permissions for ubuntu user (UID 1000 in base image)
 RUN mkdir -p /tmp/runtime-ubuntu && chown ubuntu:ubuntu /tmp/runtime-ubuntu && chmod 700 /tmp/runtime-ubuntu
 
-# Set the user
 USER ubuntu
-
-# Create a workspace
-RUN mkdir -p /home/ubuntu/ros2_ws/src
-
-# Set the workspace
 WORKDIR /home/ubuntu/ros2_ws
+RUN mkdir -p /home/ubuntu/ros2_ws/src/bag2vid
 
-# Copy the source code
-COPY . /home/ubuntu/ros2_ws/src/bag2vid
+# Copy package manifest first so rosdep layer caches when only source changes
+COPY --chown=ubuntu:ubuntu bag2vid/package.xml /home/ubuntu/ros2_ws/src/bag2vid/package.xml
 
 USER root
-
-# Install dependencies
 RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && rosdep install --from-paths src --ignore-src -r -y"
 
-# Set the user
 USER ubuntu
 
-# Build the workspace
+# Copy the rest of the source and build
+COPY --chown=ubuntu:ubuntu bag2vid /home/ubuntu/ros2_ws/src/bag2vid
 RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && colcon build --packages-select bag2vid"
 
 ENV XDG_RUNTIME_DIR=/tmp/runtime-ubuntu
