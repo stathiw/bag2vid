@@ -19,6 +19,7 @@
 #include <QProgressBar>
 
 #include <bag2vid/backend/Extractor.hpp>
+#include <bag2vid/frontend/PlaybackClock.hpp>
 #include <bag2vid/frontend/Timeline.hpp>
 #include <bag2vid/frontend/VideoPlayer.hpp>
 
@@ -98,10 +99,10 @@ private:
     TimelineWidget* timeline_widget_;
     // Video player for displaying the video preview
     VideoPlayer* video_player_;
+    // Master playback clock driving video player and timeline
+    PlaybackClock* clock_;
     QThread* thread_;
     QLabel* image_label_;
-
-    bool is_playing_;
 
     /**
      * @brief Set up the GUI elements.

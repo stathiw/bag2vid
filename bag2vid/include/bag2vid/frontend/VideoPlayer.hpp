@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include <rosbag2_storage/serialized_bag_message.hpp>
@@ -10,7 +8,6 @@
 
 #include <QImage>
 #include <QObject>
-#include <QTimer>
 
 class VideoPlayer : public QObject
 {
@@ -37,43 +34,34 @@ public:
      */
     int getCurrentFrameId() const { return current_frame_; }
 
+    /**
+     * @brief Get the bag-relative timestamp of the previous frame, or -1 if none.
+     */
+    double prevFrameTime() const;
+
+    /**
+     * @brief Get the bag-relative timestamp of the next frame, or -1 if none.
+     */
+    double nextFrameTime() const;
+
 public slots:
     /**
-     * @brief Move the video player to the specified time (in seconds).
-     * First frame of the rosbag is at time 0.
+     * @brief Render the frame appropriate for the given bag-relative time.
      *
-     * @param time
+     * @param time Seconds since bag start.
      */
-    void seekToTime(double time);
-
-    /**
-     * @brief Start playing the video.
-     */
-    void play();
-
-    /**
-     * @brief Pause the video.
-     */
-    void pause();
+    void onClockTick(double time);
 
     /**
      * @brief Load messages from a rosbag.
      *
      * @param messages Vector of shared pointers to serialized bag messages.
      * @param message_type The ROS message type string (e.g. "sensor_msgs/msg/Image").
+     * @param bag_start_time Absolute time (seconds) that corresponds to bag-relative t=0.
      */
     void loadMessages(std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages,
-                      const std::string& message_type);
-
-    /**
-     * @brief Move the video player to the previous frame.
-     */
-    void seekBackward();
-
-    /**
-     * @brief Move the video player to the next frame.
-     */
-    void seekForward();
+                      const std::string& message_type,
+                      double bag_start_time);
 
 signals:
     /**
@@ -83,38 +71,20 @@ signals:
      */
     void newFrame(const QImage &frame);
 
-    /**
-     * @brief Set the timestamp of the current frame.
-     *
-     * @param time
-     * @return * void
-     */
-    void currentTimestamp(double time);
-
-    /**
-     * @brief Signal emitted when the video has finished playing.
-     *
-     */
-    void finishedPlaying();
-
-private slots:
-    void playback();
-
 private:
-    //  Flag to indicate if the video is playing
-    bool is_playing_;
-    //  Current frame iterator
+    // Current frame index into messages_
     int current_frame_;
-    // Time of start-point marker of video extraction
-    double start_time_;
-    // Time of end-point marker of video extraction
-    double end_time_;
-    // Timer for playback
-    QTimer playback_timer_;
+    // Absolute time (seconds) that corresponds to bag-relative t=0
+    double bag_start_time_;
     // Vector of shared pointers to serialized bag messages
     std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages_;
     // The ROS message type string for this set of messages
     std::string message_type_;
+
+    /**
+     * @brief Bag-relative timestamp of the message at the given index.
+     */
+    double messageTime(int index) const;
 
     /**
      * @brief Process and emit a frame from the message at the given index.

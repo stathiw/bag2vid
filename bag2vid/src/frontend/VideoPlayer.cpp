@@ -1,35 +1,62 @@
 #include "bag2vid/frontend/VideoPlayer.hpp"
 
-#include <QDebug>
 #include <QImage>
-#include <QThread>
-
 
 VideoPlayer::VideoPlayer(QObject *parent) :
     QObject(parent),
-    is_playing_(false),
     current_frame_(0),
-    start_time_(0.0),
-    end_time_(1.0)
+    bag_start_time_(0.0)
 {
-    connect(&playback_timer_, &QTimer::timeout, this, &VideoPlayer::playback);
 }
 
 VideoPlayer::~VideoPlayer()
 {
 }
 
-void VideoPlayer::seekToTime(double time)
+double VideoPlayer::messageTime(int index) const
 {
-    // Set current frame to the first frame after the time
-    for (size_t i = 0; i < messages_.size(); i++)
+    if (index < 0 || index >= static_cast<int>(messages_.size()))
     {
-        double msg_time = static_cast<double>(messages_[i]->recv_timestamp) / 1e9;
-        if (msg_time >= time + start_time_)
-        {
-            current_frame_ = i;
-            break;
-        }
+        return -1.0;
+    }
+    return static_cast<double>(messages_[index]->recv_timestamp) / 1e9 - bag_start_time_;
+}
+
+double VideoPlayer::prevFrameTime() const
+{
+    return messageTime(current_frame_ - 1);
+}
+
+double VideoPlayer::nextFrameTime() const
+{
+    return messageTime(current_frame_ + 1);
+}
+
+void VideoPlayer::onClockTick(double time)
+{
+    if (messages_.empty())
+    {
+        return;
+    }
+
+    int new_frame = current_frame_;
+
+    // Walk forward while the next frame is still at or before `time`
+    while (new_frame + 1 < static_cast<int>(messages_.size()) &&
+           messageTime(new_frame + 1) <= time)
+    {
+        new_frame++;
+    }
+    // Walk backward (seek) while the current frame is after `time`
+    while (new_frame > 0 && messageTime(new_frame) > time)
+    {
+        new_frame--;
+    }
+
+    if (new_frame != current_frame_)
+    {
+        current_frame_ = new_frame;
+        processFrame(current_frame_);
     }
 }
 
@@ -56,67 +83,18 @@ void VideoPlayer::processFrame(int index)
     }
 }
 
-void VideoPlayer::playback()
-{
-    if (is_playing_ && current_frame_ < static_cast<int>(messages_.size()))
-    {
-        processFrame(current_frame_);
-        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
-        emit currentTimestamp(frame_timestamp - start_time_);
-        current_frame_++;
-    }
-}
-
-void VideoPlayer::play()
-{
-    if (!is_playing_)
-    {
-        is_playing_ = true;
-        playback_timer_.start(1000 / 30); // 30 FPS
-    }
-}
-
-void VideoPlayer::pause()
-{
-    is_playing_ = false;
-    playback_timer_.stop();
-}
-
-void VideoPlayer::seekBackward()
-{
-    if (current_frame_ > 0)
-    {
-        current_frame_--;
-        processFrame(current_frame_);
-        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
-        emit currentTimestamp(frame_timestamp - start_time_);
-    }
-}
-
-void VideoPlayer::seekForward()
-{
-    if (current_frame_ < static_cast<int>(messages_.size()))
-    {
-        processFrame(current_frame_);
-        double frame_timestamp = static_cast<double>(messages_[current_frame_]->recv_timestamp) / 1e9;
-        emit currentTimestamp(frame_timestamp - start_time_);
-        current_frame_++;
-    }
-}
-
 void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages,
-                                const std::string& message_type)
+                                const std::string& message_type,
+                                double bag_start_time)
 {
     current_frame_ = 0;
     messages_ = messages;
     message_type_ = message_type;
+    bag_start_time_ = bag_start_time;
     if (messages_.empty())
     {
         return;
     }
-    start_time_ = static_cast<double>(messages_[0]->recv_timestamp) / 1e9;
-    end_time_ = static_cast<double>(messages_[messages_.size() - 1]->recv_timestamp) / 1e9;
-    // Process first frame
     processFrame(0);
 }
 
