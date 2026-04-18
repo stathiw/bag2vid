@@ -17,7 +17,6 @@ namespace bag2vid
 Visualiser::Visualiser(QWidget *parent) :
     QWidget(parent)
 {
-    is_playing_ = false;
     extractor_ = std::make_unique<Extractor>();
     setupUI();
 
@@ -36,17 +35,15 @@ Visualiser::Visualiser(QWidget *parent) :
         image_label_->setPixmap(QPixmap::fromImage(resized_frame));
     });
 
-    connect(video_player_, &VideoPlayer::currentTimestamp, [this](double time)
+    // Clock drives both the video player and the timeline playhead
+    connect(clock_, &PlaybackClock::tick, video_player_, &VideoPlayer::onClockTick);
+    connect(clock_, &PlaybackClock::tick, timeline_widget_, &TimelineWidget::setCurrentTime);
+    connect(clock_, &PlaybackClock::finished, this, [this]()
     {
-        // std::cout << "Current time: " << time << std::endl;
-        timeline_widget_->setCurrentTime(time);
+        play_pause_button_->setText("Play");
     });
 
-    connect(timeline_widget_, &TimelineWidget::currentTimeChanged, [this](double time)
-    {
-        // std::cout << "Seek to time: " << time << std::endl;
-        video_player_->seekToTime(time);
-    });
+    connect(timeline_widget_, &TimelineWidget::currentTimeChanged, clock_, &PlaybackClock::seek);
 }
 
 void Visualiser::setupUI()
@@ -71,6 +68,9 @@ void Visualiser::setupUI()
 
     // Set up the video widget
     video_player_ = new VideoPlayer(this);
+
+    // Set up the playback clock
+    clock_ = new PlaybackClock(this);
     image_label_ = new QLabel(this);
     image_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     image_label_->setMinimumSize(320, 240);
@@ -135,12 +135,28 @@ void Visualiser::keyPressEvent(QKeyEvent *event)
     // Left moves current frame back 1 frame
     else if (event->key() == Qt::Key_Left)
     {
-        video_player_->seekBackward();
+        if (clock_->isPlaying())
+        {
+            togglePlayPause();
+        }
+        double t = video_player_->prevFrameTime();
+        if (t >= 0.0)
+        {
+            clock_->seek(t);
+        }
     }
     // Right arrow seeks forward 1 frame
     else if (event->key() == Qt::Key_Right)
     {
-        video_player_->seekForward();
+        if (clock_->isPlaying())
+        {
+            togglePlayPause();
+        }
+        double t = video_player_->nextFrameTime();
+        if (t >= 0.0)
+        {
+            clock_->seek(t);
+        }
     }
 }
 
@@ -161,7 +177,7 @@ void Visualiser::loadBag()
     std::cout << "Load Bag" << std::endl;
 
     // Pause video player if playing
-    if (is_playing_)
+    if (clock_->isPlaying())
     {
         togglePlayPause();
     }
@@ -192,11 +208,17 @@ void Visualiser::loadBag()
         {
             topic_dropdown_->addItem(QString::fromStdString(topic));
         }
-        // Set start and end time of timeline
-        timeline_widget_->setBagStartTime(extractor_->getBagStartTime());
-        timeline_widget_->setBagEndTime(extractor_->getBagEndTime());
+        // Populating the dropdown triggers updateTopicDropdown, which calls
+        // extractMessages as a side effect -- that's what actually populates
+        // bag_start_time_sec_ / bag_end_time_sec_ in the extractor. So we must
+        // read them out AFTER the dropdown is populated.
+        double bag_start = extractor_->getBagStartTime();
+        double bag_end = extractor_->getBagEndTime();
+        timeline_widget_->setBagStartTime(bag_start);
+        timeline_widget_->setBagEndTime(bag_end);
         timeline_widget_->setStartTime(0.0);
-        timeline_widget_->setEndTime(extractor_->getBagEndTime() - extractor_->getBagStartTime());
+        timeline_widget_->setEndTime(bag_end - bag_start);
+        clock_->setRange(bag_start, bag_end);
     }
     else
     {
@@ -227,25 +249,31 @@ void Visualiser::updateTopicDropdown()
     std::string message_type = extractor_->getTopicType(current_topic);
 
     // Load messages into video player
-    video_player_->loadMessages(messages, message_type);
+    video_player_->loadMessages(messages, message_type, extractor_->getBagStartTime());
+    // Re-render the frame for the current clock time so switching topics while
+    // paused shows the equivalent moment, not the first frame of the new topic.
+    video_player_->onClockTick(clock_->getCurrentTime());
     std::cout << "Messages extracted" << std::endl;
 }
 
 void Visualiser::togglePlayPause()
 {
-    if (is_playing_)
+    if (clock_->isPlaying())
     {
         std::cout << "Pause" << std::endl;
-        video_player_->pause();
+        clock_->pause();
         play_pause_button_->setText("Play");
     }
     else
     {
         std::cout << "Play" << std::endl;
-        video_player_->play();
-        play_pause_button_->setText("Pause");
+        clock_->play();
+        // play() is a no-op if no bag is loaded; only flip the label if it actually started
+        if (clock_->isPlaying())
+        {
+            play_pause_button_->setText("Pause");
+        }
     }
-    is_playing_ = !is_playing_;
 }
 
 void Visualiser::extractVideo()

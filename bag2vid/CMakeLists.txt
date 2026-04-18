@@ -26,9 +26,11 @@ add_library(${PROJECT_NAME}_lib SHARED
   src/frontend/Visualiser.cpp
   src/frontend/Timeline.cpp
   src/frontend/VideoPlayer.cpp
+  src/frontend/PlaybackClock.cpp
   include/bag2vid/frontend/Visualiser.hpp
   include/bag2vid/frontend/Timeline.hpp
   include/bag2vid/frontend/VideoPlayer.hpp
+  include/bag2vid/frontend/PlaybackClock.hpp
   resources/resources.qrc
 )
 
