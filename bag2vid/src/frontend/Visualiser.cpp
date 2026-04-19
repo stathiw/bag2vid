@@ -4,7 +4,9 @@
 #include <iostream>
 #include <thread>
 
+#include <QDoubleValidator>
 #include <QFile>
+#include <QLineEdit>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFileDialog>
@@ -44,6 +46,12 @@ Visualiser::Visualiser(QWidget *parent) :
     });
 
     connect(timeline_widget_, &TimelineWidget::currentTimeChanged, clock_, &PlaybackClock::seek);
+
+    // Playback rate: commit on Enter/focus-out for typed input, or on dropdown selection
+    connect(playback_rate_combo_->lineEdit(), &QLineEdit::editingFinished,
+            this, &Visualiser::applyPlaybackRateFromCombo);
+    connect(playback_rate_combo_, &QComboBox::activated,
+            this, &Visualiser::onPlaybackRatePresetSelected);
 }
 
 void Visualiser::setupUI()
@@ -62,6 +70,28 @@ void Visualiser::setupUI()
     play_pause_button_ = new QPushButton("Play", this);
     extract_video_button_ = new QPushButton("Extract Video", this);
     capture_screenshot_button_ = new QPushButton("Capture Screenshot", this);
+
+    // Playback rate combo: editable with presets + free-form numeric entry.
+    // The "x" suffix is display-only; typing is restricted to numbers by the validator.
+    // NoInsert prevents Qt from auto-inserting typed values as new items (which
+    // would otherwise fire activated() with an index past kPresetPlaybackRates).
+    playback_rate_combo_ = new QComboBox(this);
+    playback_rate_combo_->setEditable(true);
+    playback_rate_combo_->setInsertPolicy(QComboBox::NoInsert);
+    // Disable inline completion so typed input isn't auto-filled to a matching preset.
+    playback_rate_combo_->setCompleter(nullptr);
+    for (double rate : kPresetPlaybackRates)
+    {
+        playback_rate_combo_->addItem(QString::number(rate) + "x");
+    }
+    playback_rate_combo_->setCurrentText("1");
+    playback_rate_combo_->setFixedWidth(80);
+    // Validator enforces numeric-only input; range is enforced by the handler so
+    // that editingFinished still fires for out-of-range input (allowing revert).
+    auto *rate_validator = new QDoubleValidator(this);
+    rate_validator->setDecimals(2);
+    rate_validator->setNotation(QDoubleValidator::StandardNotation);
+    playback_rate_combo_->setValidator(rate_validator);
 
     // Set up the timeline widget
     timeline_widget_ = new TimelineWidget(this);
@@ -104,6 +134,7 @@ void Visualiser::setupUI()
     QHBoxLayout* timeline_layout = new QHBoxLayout;
     play_pause_button_->setFixedWidth(100);
     timeline_layout->addWidget(play_pause_button_);
+    timeline_layout->addWidget(playback_rate_combo_);
     timeline_layout->addWidget(timeline_widget_);
     // Don't allow the timeline to stretch vertically if the window is resized
     timeline_layout->setAlignment(Qt::AlignTop);
@@ -380,6 +411,34 @@ void Visualiser::captureScreenshot()
 void Visualiser::updateProgressBar(int progress)
 {
     extraction_progress_bar_->setValue(progress);
+}
+
+void Visualiser::applyPlaybackRateFromCombo()
+{
+    // Read the current text from playback_rate_combo_, check if numeric value in valid range [kMinPlaybackRate, kMaxPlaybackRate]
+
+    // Get current text in playback_rate_combo_
+    QString raw_input = playback_rate_combo_->currentText().trimmed();
+
+    // Check is valid input
+    bool is_numeric = false;
+    double rate = raw_input.toDouble(&is_numeric);
+
+    // Update if valid input; otherwise revert the field to the current rate
+    if (is_numeric && rate >= kMinPlaybackRate && rate <= kMaxPlaybackRate)
+    {
+        clock_->setPlaybackRate(rate);
+    }
+    else
+    {
+        playback_rate_combo_->setEditText(QString::number(clock_->getPlaybackRate()));
+    }
+}
+
+void Visualiser::onPlaybackRatePresetSelected(int index)
+{
+    playback_rate_combo_->setEditText(QString::number(kPresetPlaybackRates[index]));
+    applyPlaybackRateFromCombo();   
 }
 
 } // namespace bag2vid
