@@ -8,6 +8,7 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
 
 #include <QFileDialog>
 #include <QLabel>
@@ -68,6 +69,22 @@ private slots:
      */
     void captureScreenshot();
 
+    /**
+     * @brief Parse the playback rate combo's current text and apply it to the clock.
+     *
+     * Expects a numeric value in [0.01, 100]. Invalid or out-of-range input is
+     * ignored, leaving the clock at its previous rate.
+     */
+    void applyPlaybackRateFromCombo();
+
+    /**
+     * @brief Handle user selecting a preset from the playback rate dropdown.
+     *
+     * Replaces the "0.5x" display string in the edit field with the bare number
+     * (e.g. "0.5"), then applies it.
+     */
+    void onPlaybackRatePresetSelected(int index);
+
 protected:
     /**
      * @brief Resize event handler.
@@ -84,6 +101,14 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private:
+    // Preset playback rates shown in the rate combo dropdown
+    inline static const std::vector<double> kPresetPlaybackRates = {
+        0.25, 0.5, 1.0, 2.0, 5.0, 10.0
+    };
+    // Bounds for custom playback rate entry
+    static constexpr double kMinPlaybackRate = 0.01;
+    static constexpr double kMaxPlaybackRate = 100.0;
+
     // Extractor object for extracting video from rosbag
     std::unique_ptr<Extractor> extractor_;
 
@@ -92,6 +117,7 @@ private:
     QPushButton* load_bag_button_;
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
+    QComboBox* playback_rate_combo_;
     QPushButton* extract_video_button_;
     QPushButton* capture_screenshot_button_;
     QProgressBar* extraction_progress_bar_;
