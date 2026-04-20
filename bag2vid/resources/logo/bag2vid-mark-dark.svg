@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <title>bag2vid — kelp forest badge (dark)</title>
+  <defs>
+    <clipPath id="circle-clip">
+      <circle cx="80" cy="80" r="72"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#circle-clip)">
+    <rect x="0" y="0" width="160" height="160" fill="#2A2F20"/>
+    <path d="M -10 20 Q 15 10, 40 20 T 90 20 T 140 20 T 190 20 L 190 48 Q 165 58, 140 48 T 90 48 T 40 48 T -10 48 Z" fill="#F0D998"/>
+    <path d="M -35 58 Q -10 48, 15 58 T 65 58 T 115 58 T 165 58 T 215 58 L 215 86 Q 190 76, 165 86 T 115 86 T 65 86 T 15 86 T -35 86 Z" fill="#DDB04A"/>
+    <path d="M -10 96 Q 15 106, 40 96 T 90 96 T 140 96 T 190 96 L 190 124 Q 165 114, 140 124 T 90 124 T 40 124 T -10 124 Z" fill="#C8912E"/>
+    <path d="M -35 134 Q -10 144, 15 134 T 65 134 T 115 134 T 165 134 T 215 134 L 215 180 L -35 180 Z" fill="#6B7730"/>
+  </g>
+</svg>
