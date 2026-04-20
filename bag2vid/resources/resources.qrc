@@ -2,4 +2,24 @@
     <qresource prefix="/">
         <file>theme.qss</file>
     </qresource>
+    <qresource prefix="/fonts">
+        <file alias="Fraunces-Variable.ttf">fonts/Fraunces/Fraunces-Variable.ttf</file>
+        <file alias="Manrope-Variable.ttf">fonts/Manrope/Manrope-Variable.ttf</file>
+        <file alias="IBMPlexMono-Regular.ttf">fonts/IBMPlexMono/IBMPlexMono-Regular.ttf</file>
+        <file alias="IBMPlexMono-Medium.ttf">fonts/IBMPlexMono/IBMPlexMono-Medium.ttf</file>
+    </qresource>
+    <qresource prefix="/logo">
+        <file alias="bag2vid-mark-light.svg">logo/bag2vid-mark-light.svg</file>
+        <file alias="bag2vid-mark-dark.svg">logo/bag2vid-mark-dark.svg</file>
+        <file alias="bag2vid-wordmark-light.svg">logo/bag2vid-wordmark-light.svg</file>
+        <file alias="bag2vid-wordmark-dark.svg">logo/bag2vid-wordmark-dark.svg</file>
+        <file alias="bag2vid-mark-dark-36.png">logo/raster/bag2vid-mark-dark-36.png</file>
+        <file alias="bag2vid-mark-dark-64.png">logo/raster/bag2vid-mark-dark-64.png</file>
+        <file alias="bag2vid-mark-dark-72.png">logo/raster/bag2vid-mark-dark-72.png</file>
+        <file alias="bag2vid-mark-dark-128.png">logo/raster/bag2vid-mark-dark-128.png</file>
+        <file alias="bag2vid-mark-dark-256.png">logo/raster/bag2vid-mark-dark-256.png</file>
+    </qresource>
+    <qresource prefix="/icons">
+        <file alias="chevron-down.svg">icons/chevron-down.svg</file>
+    </qresource>
 </RCC>

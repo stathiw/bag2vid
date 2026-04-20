@@ -1,57 +1,143 @@
 /*
- * bag2vid global stylesheet
- * All application colours are defined here.
+ * bag2vid global stylesheet — Kelp Forest palette, dark-first.
+ * Visual target: design-portfolio/bag2vid/app-mockup.html (Layout B, single-pane).
+ *
+ * Palette swatches:
+ *   Kelp night     #1A1E14  — recessed surfaces (combo, timeline track, progress track behind fill)
+ *   Kelp shadow    #262A1C  — primary app surface (window background)
+ *   Kelp deep      #3D4220  — secondary button fill, borders, progress track
+ *   Kelp body      #6B7730  — (available, currently unused)
+ *   Frond gold     #C8912E  — primary button hover
+ *   Sunlit frond   #DDB04A  — primary button, timeline start marker
+ *   Anemone        #8A7FB3  — extraction progress fill
+ *   Paper          #E8E4D0  — body text, playhead
+ *   Paper muted    #A8A18C  — utility / dim text (computed, not a palette swatch)
+ *
+ * Typography (bundled via QFontDatabase::addApplicationFont):
+ *   Fraunces       — display / wordmark (not used in chrome yet, reserved for headings)
+ *   Manrope        — UI / body (default)
+ *   IBM Plex Mono  — utility / timestamps / file paths
  */
 
 QWidget {
-    background-color: #F5F7FA;
-    color: #2C3E50;
+    background-color: #262A1C;  /* Kelp shadow */
+    color: #E8E4D0;             /* Paper */
+    font-family: "Manrope";
+    font-size: 14px;
+    font-weight: 500;           /* Manrope Medium — reads closer to mockup than Regular */
 }
 
+/* Secondary button — default tier */
 QPushButton {
-    background-color: #B8D4E8;
-    color: #2C3E50;
+    background-color: #3D4220;  /* Kelp deep */
+    color: #E8E4D0;             /* Paper */
     border: none;
-    border-radius: 6px;
-    padding: 6px 14px;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-weight: 500;
 }
 
 QPushButton:hover {
-    background-color: #9CC3DE;
+    background-color: #4A512A;  /* Kelp deep, lifted */
 }
 
 QPushButton:pressed {
-    background-color: #7EB1D4;
+    background-color: #333818;
 }
 
+QPushButton:disabled {
+    color: #A8A18C;
+    background-color: #2E3219;
+}
+
+/* Primary button — hero tier (set via setProperty("variant", "primary")) */
+QPushButton[variant="primary"] {
+    background-color: #DDB04A;  /* Sunlit frond */
+    color: #1A1E14;             /* Kelp night */
+}
+
+QPushButton[variant="primary"]:hover {
+    background-color: #C8912E;  /* Frond gold */
+}
+
+QPushButton[variant="primary"]:pressed {
+    background-color: #A27423;
+}
+
+/* Combo box — recessed slot */
 QComboBox {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E6EA;
-    border-radius: 6px;
-    padding: 4px 8px;
+    background-color: #1A1E14;  /* Kelp night */
+    color: #E8E4D0;
+    border: 1px solid #3D4220;  /* Kelp deep */
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-height: 18px;
 }
 
-QProgressBar {
-    background-color: #E2E6EA;
+QComboBox:focus {
+    border: 1px solid #DDB04A;  /* Sunlit frond focus ring */
+}
+
+QComboBox::drop-down {
     border: none;
+    width: 22px;
+}
+
+QComboBox::down-arrow {
+    image: url(:/icons/chevron-down.svg);
+    width: 12px;
+    height: 8px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #262A1C;  /* Kelp shadow (popup) */
+    color: #E8E4D0;
+    selection-background-color: #3D4220;
+    selection-color: #E8E4D0;
+    border: 1px solid #3D4220;
+    border-radius: 8px;
+    padding: 4px;
+    outline: 0;
+    margin: 0;
+}
+
+QComboBox QAbstractItemView::item {
+    padding: 6px 10px;
+    min-height: 20px;
     border-radius: 4px;
+}
+
+QComboBox QListView {
+    background-color: #262A1C;
+    border: none;
+}
+
+/* Extraction progress bar */
+QProgressBar {
+    background-color: #3D4220;  /* Kelp deep — structural track */
+    color: #E8E4D0;
+    border: none;
+    border-radius: 2px;
     text-align: center;
+    font-family: "IBM Plex Mono";
+    font-size: 11px;
 }
 
 QProgressBar::chunk {
-    background-color: #B8D4E8;
-    border-radius: 4px;
+    background-color: #8A7FB3;  /* Anemone */
+    border-radius: 2px;
 }
 
 QLabel {
     background-color: transparent;
 }
 
-/* Timeline custom painting colours */
+/* Timeline custom-painted widget — colors driven by qproperties */
 bag2vid--TimelineWidget {
-    qproperty-barColor: #E2E6EA;
-    qproperty-startColor: #B8D4E8;
-    qproperty-endColor: #7EB1D4;
-    qproperty-playheadColor: #9CC3DE;
-    qproperty-textColor: #2C3E50;
+    qproperty-containerColor: #1A1E14; /* Kelp night — timeline container bg */
+    qproperty-barColor: #3D4220;       /* Kelp deep — track line */
+    qproperty-startColor: #DDB04A;     /* Sunlit frond — start marker */
+    qproperty-endColor: #C8912E;       /* Frond gold — end marker */
+    qproperty-playheadColor: #E8E4D0;  /* Paper — playhead line */
+    qproperty-textColor: #E8E4D0;      /* Paper — playhead timestamp */
 }
