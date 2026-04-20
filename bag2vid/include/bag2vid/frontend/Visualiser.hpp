@@ -113,14 +113,19 @@ private:
     std::unique_ptr<Extractor> extractor_;
 
     // GUI elements
+    QLabel* logo_label_;
+    QLabel* wordmark_label_;
     QLabel* rosbag_filename_label_;
     QPushButton* load_bag_button_;
     QComboBox* topic_dropdown_;
     QPushButton* play_pause_button_;
     QComboBox* playback_rate_combo_;
+    QLabel* bag_start_label_;
+    QLabel* bag_end_label_;
     QPushButton* extract_video_button_;
     QPushButton* capture_screenshot_button_;
     QProgressBar* extraction_progress_bar_;
+    QLabel* status_label_;
     // Timeline widget for showing current playback time and selecting start and end times
     TimelineWidget* timeline_widget_;
     // Video player for displaying the video preview
