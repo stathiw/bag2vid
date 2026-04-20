@@ -4,17 +4,30 @@
 #include <iostream>
 #include <thread>
 
+#include <QAbstractItemView>
 #include <QDoubleValidator>
 #include <QFile>
+#include <QFileInfo>
 #include <QLineEdit>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFileDialog>
 #include <QtConcurrent>
+#include <QPixmap>
 
 
 namespace bag2vid
 {
+
+namespace {
+QString formatTime(double seconds)
+{
+    const int total = static_cast<int>(seconds);
+    const int mins = total / 60;
+    const int secs = total % 60;
+    return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
+}
+}
 
 Visualiser::Visualiser(QWidget *parent) :
     QWidget(parent)
@@ -56,7 +69,7 @@ Visualiser::Visualiser(QWidget *parent) :
 
 void Visualiser::setupUI()
 {
-    this->setMinimumSize(640, 480);
+    this->setMinimumSize(820, 560);
     QFile styleFile(":/theme.qss");
     if (styleFile.open(QFile::ReadOnly | QFile::Text))
     {
@@ -64,12 +77,51 @@ void Visualiser::setupUI()
         styleFile.close();
     }
 
-    // Set up the buttons
+    // --- Widget creation ---
+
+    // Header: pre-rendered mark PNG (the SVG's clipPath isn't honored by Qt's SVG
+    // renderer; Inkscape renders the circular clip correctly at export time).
+    logo_label_ = new QLabel(this);
+    {
+        constexpr int kMarkSize = 36;
+        const qreal dpr = this->devicePixelRatioF();
+        const QString path = (dpr > 1.5)
+            ? QStringLiteral(":/logo/bag2vid-mark-dark-72.png")
+            : QStringLiteral(":/logo/bag2vid-mark-dark-36.png");
+        QPixmap pixmap(path);
+        pixmap.setDevicePixelRatio(dpr);
+        logo_label_->setPixmap(pixmap);
+        logo_label_->setFixedSize(kMarkSize, kMarkSize);
+    }
+
+    wordmark_label_ = new QLabel(this);
+    wordmark_label_->setTextFormat(Qt::RichText);
+    wordmark_label_->setAlignment(Qt::AlignVCenter);
+    wordmark_label_->setText(QStringLiteral(
+        "<span style='font-family:Fraunces; font-size:26px; font-weight:500;'>"
+        "bag<span style='color:#DDB04A;'>2</span>vid</span>"));
+
+    rosbag_filename_label_ = new QLabel("", this);
+    rosbag_filename_label_->setTextFormat(Qt::RichText);
+    rosbag_filename_label_->setStyleSheet("font-family: 'IBM Plex Mono'; font-size: 12px;");
+
     load_bag_button_ = new QPushButton("Load Bag", this);
+    load_bag_button_->setProperty("variant", "primary");
+
+    // Topic strip
     topic_dropdown_ = new QComboBox(this);
+    topic_dropdown_->setMinimumWidth(300);
+
+    // Video pane
+    image_label_ = new QLabel(this);
+    image_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    image_label_->setMinimumSize(320, 240);
+    image_label_->setAlignment(Qt::AlignCenter);
+    image_label_->setStyleSheet("background-color: #1A1E14; border-radius: 10px;");
+
+    // Transport controls
     play_pause_button_ = new QPushButton("Play", this);
-    extract_video_button_ = new QPushButton("Extract Video", this);
-    capture_screenshot_button_ = new QPushButton("Capture Screenshot", this);
+    play_pause_button_->setFixedWidth(100);
 
     // Playback rate combo: editable with presets + free-form numeric entry.
     // The "x" suffix is display-only; typing is restricted to numbers by the validator.
@@ -93,63 +145,102 @@ void Visualiser::setupUI()
     rate_validator->setNotation(QDoubleValidator::StandardNotation);
     playback_rate_combo_->setValidator(rate_validator);
 
-    // Set up the timeline widget
+    // Style the combo box popup container (QComboBoxPrivateContainer is a QFrame
+    // wrapping the item view). QSS selectors can't reach it, so set its stylesheet
+    // directly — otherwise the system chrome bleeds through as white bars above
+    // and below the list view.
+    auto style_combo_popup = [](QComboBox* combo) {
+        if (auto* popup = combo->view()->parentWidget()) {
+            popup->setStyleSheet(
+                "background: #262A1C; border: 1px solid #3D4220; border-radius: 8px;");
+        }
+    };
+    style_combo_popup(topic_dropdown_);
+    style_combo_popup(playback_rate_combo_);
+
     timeline_widget_ = new TimelineWidget(this);
 
-    // Set up the video widget
-    video_player_ = new VideoPlayer(this);
+    const QString kTimeLabelStyle =
+        "font-family: 'IBM Plex Mono'; font-size: 11px; color: #A8A18C;";
+    bag_start_label_ = new QLabel("0:00", this);
+    bag_start_label_->setStyleSheet(kTimeLabelStyle);
+    bag_end_label_ = new QLabel("0:00", this);
+    bag_end_label_->setStyleSheet(kTimeLabelStyle);
 
-    // Set up the playback clock
-    clock_ = new PlaybackClock(this);
-    image_label_ = new QLabel(this);
-    image_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    image_label_->setMinimumSize(320, 240);
-    image_label_->setMaximumSize(1920, 1080);
+    // Export tray
+    extract_video_button_ = new QPushButton("Extract Video", this);
+    capture_screenshot_button_ = new QPushButton("Capture Screenshot", this);
 
-    // Set up the layout
-    QVBoxLayout* main_layout = new QVBoxLayout(this);
-
-    // Header layout
-    QHBoxLayout* header_layout = new QHBoxLayout();
-    rosbag_filename_label_ = new QLabel("", this);
-    header_layout->addWidget(rosbag_filename_label_);
-
-    // Menu layout
-    QHBoxLayout* top_layout = new QHBoxLayout();
-    top_layout->addWidget(load_bag_button_);
-    top_layout->addWidget(topic_dropdown_);
-    top_layout->addWidget(extract_video_button_);
-    top_layout->addWidget(capture_screenshot_button_);
-
-    // Video extraction progress bar
-    QHBoxLayout* progress_layout = new QHBoxLayout();
+    // Status bar (extraction progress)
     extraction_progress_bar_ = new QProgressBar(this);
     extraction_progress_bar_->setMinimum(0);
     extraction_progress_bar_->setMaximum(100);
     extraction_progress_bar_->setValue(0);
-    extraction_progress_bar_->setTextVisible(true);
-    progress_layout->addWidget(extraction_progress_bar_);
+    extraction_progress_bar_->setTextVisible(false);
+    extraction_progress_bar_->setFixedHeight(6);
 
-    // Timeline layout
-    QHBoxLayout* timeline_layout = new QHBoxLayout;
-    play_pause_button_->setFixedWidth(100);
-    timeline_layout->addWidget(play_pause_button_);
-    timeline_layout->addWidget(playback_rate_combo_);
-    timeline_layout->addWidget(timeline_widget_);
-    // Don't allow the timeline to stretch vertically if the window is resized
-    timeline_layout->setAlignment(Qt::AlignTop);
+    status_label_ = new QLabel("idle", this);
+    status_label_->setStyleSheet(
+        "font-family: 'IBM Plex Mono'; font-size: 11px; color: #A8A18C; letter-spacing: 1px;");
+    status_label_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    {
+        QFont status_font = status_label_->font();
+        status_font.setCapitalization(QFont::AllUppercase);
+        status_label_->setFont(status_font);
+    }
 
-    // Video layout
-    QVBoxLayout* video_layout = new QVBoxLayout;
-    video_layout->addWidget(image_label_);
-    // Allow the video to stretch to fill the available space
-    video_layout->setAlignment(Qt::AlignCenter);
+    rosbag_filename_label_->setText(
+        QStringLiteral("<span style='color:#A8A18C'>no rosbag loaded</span>"));
 
-    main_layout->addLayout(progress_layout);
-    main_layout->addLayout(header_layout);
-    main_layout->addLayout(top_layout);
-    main_layout->addLayout(timeline_layout);
-    main_layout->addLayout(video_layout);
+    // Non-UI
+    video_player_ = new VideoPlayer(this);
+    clock_ = new PlaybackClock(this);
+
+    // --- Layout composition (top-down) ---
+
+    auto* main_layout = new QVBoxLayout(this);
+    main_layout->setContentsMargins(18, 16, 18, 12);
+    main_layout->setSpacing(12);
+
+    // App header: mark | wordmark | file path (stretch) | Load Bag
+    auto* app_header = new QHBoxLayout();
+    app_header->setSpacing(10);
+    app_header->addWidget(logo_label_);
+    app_header->addWidget(wordmark_label_);
+    app_header->addSpacing(16);
+    app_header->addWidget(rosbag_filename_label_, /*stretch=*/1);
+    app_header->addWidget(load_bag_button_);
+    main_layout->addLayout(app_header);
+
+    // Topic strip: centered
+    auto* topic_strip = new QHBoxLayout();
+    topic_strip->addStretch(1);
+    topic_strip->addWidget(topic_dropdown_);
+    topic_strip->addStretch(1);
+    main_layout->addLayout(topic_strip);
+
+    // Video pane (hero)
+    main_layout->addWidget(image_label_, /*stretch=*/1);
+
+    // Transport row: play | speed | start | timeline | end
+    auto* transport = new QHBoxLayout();
+    transport->setSpacing(10);
+    transport->addWidget(play_pause_button_);
+    transport->addWidget(playback_rate_combo_);
+    transport->addWidget(bag_start_label_);
+    transport->addWidget(timeline_widget_, /*stretch=*/1);
+    transport->addWidget(bag_end_label_);
+    main_layout->addLayout(transport);
+
+    // Export tray: status on the left, action buttons on the right
+    auto* export_tray = new QHBoxLayout();
+    export_tray->addWidget(status_label_);
+    export_tray->addStretch(1);
+    export_tray->addWidget(capture_screenshot_button_);
+    export_tray->addWidget(extract_video_button_);
+    main_layout->addLayout(export_tray);
+
+    main_layout->addWidget(extraction_progress_bar_);
 
     setLayout(main_layout);
 }
@@ -232,7 +323,12 @@ void Visualiser::loadBag()
     if (extractor_->loadBag(rosbag_path.toStdString()))
     {
         std::cout << "Bag loaded successfully" << std::endl;
-        rosbag_filename_label_->setText("<b>" + rosbag_path + "</b>");
+        QFileInfo info(rosbag_path);
+        QString dir = info.absolutePath();
+        if (!dir.endsWith('/')) dir += '/';
+        rosbag_filename_label_->setText(
+            QStringLiteral("<span style='color:#A8A18C'>%1</span>%2")
+                .arg(dir.toHtmlEscaped(), info.fileName().toHtmlEscaped()));
         topic_dropdown_->clear();
 
         // Get topics
@@ -254,6 +350,9 @@ void Visualiser::loadBag()
         timeline_widget_->setStartTime(0.0);
         timeline_widget_->setEndTime(bag_end - bag_start);
         clock_->setRange(bag_start, bag_end);
+
+        bag_start_label_->setText(formatTime(0.0));
+        bag_end_label_->setText(formatTime(bag_end - bag_start));
     }
     else
     {
@@ -359,7 +458,8 @@ void Visualiser::startExtraction(const std::string& camera_name,
                                  double end_time,
                                  const std::string& video_path)
 {
-    extraction_progress_bar_->setValue(0);
+    // Reset progress bar and status
+    updateProgressBar(0);
 
     // Progress fires from the worker; marshal back to the GUI thread before touching widgets
     extractor_->setProgressCallback([this](int progress)
@@ -384,11 +484,12 @@ void Visualiser::startExtraction(const std::string& camera_name,
         if (success)
         {
             std::cout << "Video extracted successfully" << std::endl;
-            extraction_progress_bar_->setValue(100);
+            updateProgressBar(100);
         }
         else
         {
             std::cout << "Failed to extract video" << std::endl;
+            status_label_->setText("extraction failed");
         }
         extract_video_button_->setEnabled(true);
         load_bag_button_->setEnabled(true);
@@ -442,6 +543,14 @@ void Visualiser::captureScreenshot()
 void Visualiser::updateProgressBar(int progress)
 {
     extraction_progress_bar_->setValue(progress);
+    if (progress >= 100)
+    {
+        status_label_->setText("done");
+    }
+    else if (progress >= 0)
+    {
+        status_label_->setText(QString("extracting — %1%").arg(progress));
+    }
 }
 
 void Visualiser::applyPlaybackRateFromCombo()

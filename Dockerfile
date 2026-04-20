@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qt6-base-dev \
     qt6-multimedia-dev \
     libqt6multimedia6 \
+    libqt6svg6-dev \
     libopencv-dev \
     libx264-dev \
     ffmpeg \

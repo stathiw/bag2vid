@@ -1,5 +1,7 @@
 #include "bag2vid/frontend/Timeline.hpp"
 
+#include <QFont>
+#include <QFontMetrics>
 #include <QPainter>
 #include <QMouseEvent>
 
@@ -7,6 +9,23 @@
 
 namespace bag2vid
 {
+
+namespace {
+constexpr int kPlayheadTextZone = 18;  // text area above container
+constexpr int kMarkerLabelZone = 18;   // text area below container (start/end marker times)
+constexpr int kHPad = 16;              // horizontal padding inside container
+constexpr int kTriHalf = 7;            // marker triangle half-height
+constexpr int kTriW = 10;              // marker triangle horizontal length
+constexpr int kPlayheadInset = 6;      // vertical inset of playhead from container edges
+constexpr int kContainerRadius = 10;
+constexpr int kHitTolerance = 8;
+
+int timeToX(double time, double duration, int widget_width)
+{
+    if (duration <= 0.0) return kHPad;
+    return static_cast<int>((time / duration) * (widget_width - 2 * kHPad) + kHPad);
+}
+}
 
 TimelineWidget::TimelineWidget(QWidget *parent) :
     QWidget(parent),
@@ -17,8 +36,8 @@ TimelineWidget::TimelineWidget(QWidget *parent) :
     dragging_end_(false),
     dragging_timeline_(false)
 {
-    setMinimumHeight(100);
-    setMinimumWidth(500);
+    setMinimumHeight(80);
+    setMinimumWidth(300);
     std::cout << "TimelineWidget created" << std::endl;
 }
 
@@ -30,72 +49,93 @@ TimelineWidget::~TimelineWidget()
 
 void TimelineWidget::paintEvent(QPaintEvent *event)
 {
-    // Draw the timeline
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(text_color_);
 
-    int bar_height = 50;        // Height of the timeline bar
-    int marker_height = 20;     // Height of the timeline markers
+    const int container_top = kPlayheadTextZone;
+    const int container_bottom = height() - kMarkerLabelZone;
+    const int track_y = container_top + (container_bottom - container_top) / 2;
 
-    // Draw the timeline bar
-    QPen bar_pen(bar_color_, 2);
-    painter.setPen(bar_pen);
-    painter.drawLine(10, bar_height, width()-10, bar_height);
+    // Container background — rounded rect, Kelp night by default
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(container_color_);
+    painter.drawRoundedRect(
+        QRectF(0, container_top, width(), container_bottom - container_top),
+        kContainerRadius, kContainerRadius);
 
-    // Draw the start marker (right-pointing triangle)
+    // Track line — thin horizontal across the container
+    painter.setPen(QPen(bar_color_, 2));
+    painter.drawLine(kHPad, track_y, width() - kHPad, track_y);
+
+    // Start marker — right-pointing triangle
+    const int startMarkerX = timeToX(start_time_, duration_, width());
     painter.setPen(Qt::NoPen);
     painter.setBrush(start_color_);
-    int startMarkerX = (start_time_  / duration_) * (width() - 20) + 10;
-    int mid = bar_height - marker_height / 2;
     QPolygon start_triangle;
-    start_triangle << QPoint(startMarkerX, bar_height - marker_height)
-                   << QPoint(startMarkerX + 10, mid)
-                   << QPoint(startMarkerX, bar_height);
+    start_triangle << QPoint(startMarkerX, track_y - kTriHalf)
+                   << QPoint(startMarkerX + kTriW, track_y)
+                   << QPoint(startMarkerX, track_y + kTriHalf);
     painter.drawPolygon(start_triangle);
-    painter.setPen(text_color_);
-    painter.drawText(startMarkerX - 20, bar_height + 20, QString::number(start_time_, 'f', 2));
 
-    // Draw end marker (left-pointing triangle)
-    painter.setPen(Qt::NoPen);
+    // End marker — left-pointing triangle
+    const int endMarkerX = timeToX(end_time_, duration_, width());
     painter.setBrush(end_color_);
-    int endMarkerX = (end_time_ / duration_) * (width() - 20) + 10;
     QPolygon end_triangle;
-    end_triangle << QPoint(endMarkerX, bar_height - marker_height)
-                 << QPoint(endMarkerX - 10, mid)
-                 << QPoint(endMarkerX, bar_height);
+    end_triangle << QPoint(endMarkerX, track_y - kTriHalf)
+                 << QPoint(endMarkerX - kTriW, track_y)
+                 << QPoint(endMarkerX, track_y + kTriHalf);
     painter.drawPolygon(end_triangle);
-    painter.setPen(text_color_);
-    painter.drawText(endMarkerX - 20, bar_height + 20, QString::number(end_time_, 'f', 2));
 
-    // Draw current time marker
-    painter.setPen(Qt::NoPen);
+    // Playhead — vertical line
+    const int currentTimeMarkerX = timeToX(current_time_, duration_, width());
     painter.setBrush(playhead_color_);
-    int currentTimeMarkerX = (current_time_ / duration_) * (width() - 20) + 10;
-    painter.drawRoundedRect(currentTimeMarkerX - 2, bar_height - marker_height - 10, 4, marker_height + 20, 2, 2);
+    painter.drawRoundedRect(
+        QRectF(currentTimeMarkerX - 1, container_top + kPlayheadInset,
+               2, (container_bottom - container_top) - 2 * kPlayheadInset),
+        1, 1);
+
+    // Marker & playhead timestamps — centered on their marker, clamped to widget bounds.
+    QFont mono(QStringLiteral("IBM Plex Mono"), 9);
+    painter.setFont(mono);
+    const QFontMetrics fm(mono);
+
+    const auto centered_x = [&](const QString& text, int anchor_x) {
+        const int w = fm.horizontalAdvance(text);
+        return qBound(0, anchor_x - w / 2, width() - w);
+    };
+
+    const int label_y = container_bottom + kMarkerLabelZone - 4;
+
+    const QString playhead_text = QString::number(current_time_, 'f', 2);
     painter.setPen(text_color_);
-    painter.drawText(currentTimeMarkerX - 20, bar_height - marker_height - 20, QString::number(current_time_, 'f', 2));
+    painter.drawText(centered_x(playhead_text, currentTimeMarkerX),
+                     kPlayheadTextZone - 4, playhead_text);
+
+    const QString start_text = QString::number(start_time_, 'f', 2);
+    painter.setPen(start_color_);
+    painter.drawText(centered_x(start_text, startMarkerX), label_y, start_text);
+
+    const QString end_text = QString::number(end_time_, 'f', 2);
+    painter.setPen(end_color_);
+    painter.drawText(centered_x(end_text, endMarkerX), label_y, end_text);
 }
 
 void TimelineWidget::mousePressEvent(QMouseEvent *event)
 {
     int mouseX = static_cast<int>(event->position().x());
 
-    // Check if mouse press is on start marker
-    int startMarkerX = (start_time_ / duration_) * (width() - 20) + 10;
-    if (mouseX >= startMarkerX - 5 && mouseX <= startMarkerX + 5) {
+    int startMarkerX = timeToX(start_time_, duration_, width());
+    if (mouseX >= startMarkerX - kHitTolerance && mouseX <= startMarkerX + kHitTolerance + kTriW) {
         dragging_start_ = true;
     }
 
-    // Check if mouse press is on end marker
-    int endMarkerX = (end_time_ / duration_) * (width() - 20) + 10;
-    if (mouseX >= endMarkerX - 5 && mouseX <= endMarkerX + 5) {
+    int endMarkerX = timeToX(end_time_, duration_, width());
+    if (mouseX >= endMarkerX - kHitTolerance - kTriW && mouseX <= endMarkerX + kHitTolerance) {
         dragging_end_ = true;
     }
 
-    // Check if mouse press is on current time marker
-    int currentTimeMarkerX = (current_time_ / duration_) * (width() - 20) + 10;
-    if (mouseX >= currentTimeMarkerX - 2 && mouseX <= currentTimeMarkerX + 2) {
+    int currentTimeMarkerX = timeToX(current_time_, duration_, width());
+    if (mouseX >= currentTimeMarkerX - kHitTolerance && mouseX <= currentTimeMarkerX + kHitTolerance) {
         dragging_timeline_ = true;
     }
 }
@@ -123,7 +163,7 @@ void TimelineWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void TimelineWidget::updateMarkerPosition(double& markerPos, int mouseX)
 {
-    markerPos = static_cast<double>(mouseX - 10) / (width() - 20);
+    markerPos = static_cast<double>(mouseX - kHPad) / (width() - 2 * kHPad);
     if (markerPos < 0.0) markerPos = 0.0;
     if (markerPos > 1.0) markerPos = 1.0;
     markerPos = markerPos * duration_;
