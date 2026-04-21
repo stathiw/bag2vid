@@ -18,7 +18,7 @@ find_package(cv_bridge REQUIRED)
 
 # System dependencies
 find_package(OpenCV REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia MultimediaWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia MultimediaWidgets Concurrent)
 
 # Library
 add_library(${PROJECT_NAME}_lib SHARED
@@ -51,6 +51,7 @@ target_link_libraries(${PROJECT_NAME}_lib
   Qt6::Widgets
   Qt6::Multimedia
   Qt6::MultimediaWidgets
+  Qt6::Concurrent
 )
 
 # GUI executable
