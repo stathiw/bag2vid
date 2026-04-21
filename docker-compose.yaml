@@ -8,10 +8,17 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${HOME}:${HOME}
+      - type: bind
+        source: ${XAUTHORITY:-${HOME}/.Xauthority}
+        target: ${XAUTHORITY:-${HOME}/.Xauthority}
+        read_only: true
+        bind:
+          create_host_path: false
     command: /bin/bash
     environment:
       - DISPLAY=${DISPLAY}
       - HOME=${HOME}
+      - XAUTHORITY=${XAUTHORITY:-${HOME}/.Xauthority}
     network_mode: host
     tty: true
     privileged: true
