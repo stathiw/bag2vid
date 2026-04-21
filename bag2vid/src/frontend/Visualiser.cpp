@@ -10,7 +10,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFileDialog>
-#include <QThread>
+#include <QtConcurrent>
 
 
 namespace bag2vid
@@ -347,22 +347,49 @@ void Visualiser::extractVideo()
         return;
     }
 
+    startExtraction(camera_name, start_time, end_time, video_path.toStdString());
+}
+
+void Visualiser::startExtraction(const std::string& camera_name,
+                                 double start_time,
+                                 double end_time,
+                                 const std::string& video_path)
+{
     extraction_progress_bar_->setValue(0);
-    // Set progress callback
+
+    // Progress fires from the worker; marshal back to the GUI thread before touching widgets
     extractor_->setProgressCallback([this](int progress)
     {
-        updateProgressBar(progress);
+        QMetaObject::invokeMethod(this, [this, progress]()
+        {
+            updateProgressBar(progress);
+        }, Qt::QueuedConnection);
     });
 
-    if (extractor_->writeVideo(camera_name, start_time, end_time, video_path.toStdString()))
+    // Block controls that would mutate extractor_ mid-run
+    extract_video_button_->setEnabled(false);
+    load_bag_button_->setEnabled(false);
+    topic_dropdown_->setEnabled(false);
+
+    // Capture by value: the worker outlives this function, so locals would dangle if captured by reference
+    QtConcurrent::run([this, camera_name, start_time, end_time, video_path]()
     {
-        std::cout << "Video extracted successfully" << std::endl;
-        extraction_progress_bar_->setValue(100);
-    }
-    else
+        return extractor_->writeVideo(camera_name, start_time, end_time, video_path);
+    }).then(this, [this](bool success)
     {
-        std::cout << "Failed to extract video" << std::endl;
-    }
+        if (success)
+        {
+            std::cout << "Video extracted successfully" << std::endl;
+            extraction_progress_bar_->setValue(100);
+        }
+        else
+        {
+            std::cout << "Failed to extract video" << std::endl;
+        }
+        extract_video_button_->setEnabled(true);
+        load_bag_button_->setEnabled(true);
+        topic_dropdown_->setEnabled(true);
+    });
 }
 
 void Visualiser::captureScreenshot()

@@ -127,7 +127,6 @@ private:
     VideoPlayer* video_player_;
     // Master playback clock driving video player and timeline
     PlaybackClock* clock_;
-    QThread* thread_;
     QLabel* image_label_;
 
     /**
@@ -141,5 +140,16 @@ private:
      *
      */
     void updateProgressBar(int progress);
+
+    /**
+     * @brief Kick off extraction on a worker thread.
+     *
+     * Disables controls that would mutate extractor_ state, runs writeVideo
+     * off-thread, and re-enables controls from the completion continuation.
+     */
+    void startExtraction(const std::string& camera_name,
+                         double start_time,
+                         double end_time,
+                         const std::string& video_path);
 };
 } // namespace bag2vid
