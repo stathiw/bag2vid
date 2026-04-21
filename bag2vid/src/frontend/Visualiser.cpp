@@ -221,6 +221,10 @@ void Visualiser::loadBag()
     {
         return;
     }
+    // Release old shared_ptrs before resetting extractor_: their deleters
+    // reference Reader memory and must not outlive it.
+    video_player_->loadMessages({}, "", 0.0);
+
     // Reset extractor
     extractor_ = std::make_unique<Extractor>();
 
