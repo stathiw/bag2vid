@@ -1,9 +1,17 @@
-# bag2vid
-A GUI tool to extract videos from a rosbag. Supports ROS 2 Jazzy with MCAP bag formats.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="bag2vid/resources/logo/bag2vid-wordmark-dark.svg">
+    <img src="bag2vid/resources/logo/bag2vid-wordmark-light.svg" alt="bag2vid" width="420">
+  </picture>
+</p>
+
+<p align="center"><em>A GUI tool to extract videos from a rosbag. Supports ROS 2 Jazzy with MCAP bag formats.</em></p>
 
 > **Looking for the ROS 1 (Melodic) version?** See the [`ros/melodic`](https://github.com/stathiw/bag2vid/tree/ros1/melodic) branch.
 
-
+<p align="center">
+  <img src="docs/images/bag2vid.png" alt="bag2vid screenshot" width="100%">
+</p>
 
 ## Install
 1. Clone the repository
@@ -40,18 +48,14 @@ cd bag2vid
 docker compose up
 ```
 
-#### How to use
-Use the **_Load Bag_** button to select a rosbag to extract videos from.
+## How to use
 
-Select the camera topic to extract from the dropdown.  Upon loading a rosbag, all camera topics will be found.
-
-Press the **_Extract Video_** button and enter a file name and location to save the extracted video.
-
-Drag the start (green) and end (red) time selection markers to select the times between which to extract a video.
-
-Press the **_Capture Screenshot_** button to save the current frame as a png.
-
-![bag2vid](docs/images/bag2vid.png)
+1. Click **_Load Bag_** and select a rosbag. All camera topics are detected automatically.
+2. Pick a camera topic from the dropdown.
+3. Use **_Play_** / **_Pause_** to preview. Adjust playback rate with the speed selector.
+4. Drag the start and end markers on the timeline to set the clip range. Each marker shows its current timestamp.
+5. Click **_Extract Video_** and choose where to save the clip.
+6. Press **_Capture Screenshot_** at any time to save the current frame as a PNG.
 
 ## ⚖️ License & Terms of Use
 
