@@ -7,6 +7,7 @@ VideoPlayer::VideoPlayer(QObject *parent) :
     current_frame_(0),
     bag_start_time_(0.0)
 {
+    messages_ = std::make_shared<const std::vector<bag2vid::MessageInstancePtr>>();
 }
 
 VideoPlayer::~VideoPlayer()
@@ -15,11 +16,10 @@ VideoPlayer::~VideoPlayer()
 
 double VideoPlayer::messageTime(int index) const
 {
-    if (index < 0 || index >= static_cast<int>(messages_.size()))
-    {
+    if (index < 0 || index >= static_cast<int>(messages_->size())) {
         return -1.0;
     }
-    return static_cast<double>(messages_[index]->recv_timestamp) / 1e9 - bag_start_time_;
+    return static_cast<double>(messages_->at(index)->recv_timestamp) / 1e9 - bag_start_time_;
 }
 
 double VideoPlayer::prevFrameTime() const
@@ -34,15 +34,14 @@ double VideoPlayer::nextFrameTime() const
 
 void VideoPlayer::onClockTick(double time)
 {
-    if (messages_.empty())
-    {
+    if (messages_->empty()) {
         return;
     }
 
     int new_frame = current_frame_;
 
     // Walk forward while the next frame is still at or before `time`
-    while (new_frame + 1 < static_cast<int>(messages_.size()) &&
+    while (new_frame + 1 < static_cast<int>(messages_->size()) &&
            messageTime(new_frame + 1) <= time)
     {
         new_frame++;
@@ -62,10 +61,11 @@ void VideoPlayer::onClockTick(double time)
 
 void VideoPlayer::processFrame(int index)
 {
-    if (index < 0 || index >= static_cast<int>(messages_.size()))
+    if (index < 0 || index >= static_cast<int>(messages_->size())) {
         return;
+    }
 
-    rclcpp::SerializedMessage serialized_msg(*messages_[index]->serialized_data);
+    rclcpp::SerializedMessage serialized_msg(*messages_->at(index)->serialized_data);
 
     if (message_type_ == "sensor_msgs/msg/Image")
     {
@@ -83,7 +83,7 @@ void VideoPlayer::processFrame(int index)
     }
 }
 
-void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages,
+void VideoPlayer::loadMessages(const bag2vid::MessagesPtr& messages,
                                 const std::string& message_type,
                                 double bag_start_time)
 {
@@ -91,11 +91,18 @@ void VideoPlayer::loadMessages(std::vector<std::shared_ptr<rosbag2_storage::Seri
     messages_ = messages;
     message_type_ = message_type;
     bag_start_time_ = bag_start_time;
-    if (messages_.empty())
-    {
+    if (messages_->empty()) {
         return;
     }
     processFrame(0);
+}
+
+void VideoPlayer::clearMessages()
+{
+    current_frame_ = 0;
+    messages_ = std::make_shared<const std::vector<bag2vid::MessageInstancePtr>>();
+    message_type_.clear();
+    bag_start_time_ = 0.0;
 }
 
 void VideoPlayer::processImageMessage(const sensor_msgs::msg::Image::SharedPtr &msg)

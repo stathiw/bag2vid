@@ -46,8 +46,8 @@ int main(int argc, char** argv)
 
     // Extract the messages
     std::cout << "Extracting messages..." << std::endl;
-    std::vector<bag2vid::MessageInstancePtr> messages = b2v.extractMessages(topic, camera_name);
-    std::cout << "Extracted " << messages.size() << " messages" << std::endl;
+    bag2vid::MessagesPtr messages = b2v.extractMessages(topic, camera_name);
+    std::cout << "Extracted " << messages->size() << " messages" << std::endl;
 
     // Write the messages to a file
     std::cout << "Writing messages to file..." << std::endl;

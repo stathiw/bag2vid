@@ -27,6 +27,23 @@ QString formatTime(double seconds)
     const int secs = total % 60;
     return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
 }
+
+// Extract the "camera name" prefix from a topic string. Used as the
+// Extractor's per-topic map key, so it must be stable across calls.
+//   "/camera_2/image_raw" -> "camera_2"
+//   "camera_2/image_raw"  -> "camera_2"
+//   "/camera_2"           -> "camera_2"
+//   "camera_2"            -> "camera_2"
+//   ""                    -> ""
+std::string deriveCameraName(const std::string& topic)
+{
+    const size_t begin = (!topic.empty() && topic.front() == '/') ? 1 : 0;
+    const size_t slash = topic.find('/', begin);
+    if (slash == std::string::npos) {
+        return topic.substr(begin);
+    }
+    return topic.substr(begin, slash - begin);
+}
 }
 
 Visualiser::Visualiser(QWidget *parent) :
@@ -314,7 +331,7 @@ void Visualiser::loadBag()
     }
     // Release old shared_ptrs before resetting extractor_: their deleters
     // reference Reader memory and must not outlive it.
-    video_player_->loadMessages({}, "", 0.0);
+    video_player_->clearMessages();
 
     // Reset extractor
     extractor_ = std::make_unique<Extractor>();
@@ -373,10 +390,10 @@ void Visualiser::updateTopicDropdown()
 
     // Load messages for the selected topic
     // camera name is first part of topic name (eg. /camera_2/image_raw_relay/compressed -> camera_2)
-    std::string camera_name = current_topic.substr(1, current_topic.find("/", 1) - 1);
+    std::string camera_name = deriveCameraName(current_topic);
 
     std::cout << "Extracting messages for camera: " << camera_name << std::endl;
-    std::vector<bag2vid::MessageInstancePtr> messages =
+    bag2vid::MessagesPtr messages =
       extractor_->extractMessages(topic_dropdown_->currentText().toStdString(), camera_name);
 
     // Look up the message type for this topic
@@ -444,7 +461,7 @@ void Visualiser::extractVideo()
     // Extract video
     std::string camera_name;
     if (!topic_dropdown_->currentText().isEmpty()) {
-        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+        camera_name = deriveCameraName(topic_dropdown_->currentText().toStdString());
     } else {
         std::cout << "No topic selected" << std::endl;
         return;
@@ -522,7 +539,7 @@ void Visualiser::captureScreenshot()
     // Get camera name
     std::string camera_name;
     if (!topic_dropdown_->currentText().isEmpty()) {
-        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+        camera_name = deriveCameraName(topic_dropdown_->currentText().toStdString());
     } else {
         std::cout << "No topic selected" << std::endl;
         return;

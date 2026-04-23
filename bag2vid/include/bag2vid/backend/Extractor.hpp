@@ -60,7 +60,7 @@ public:
    */
   std::string getTopicType(const std::string& topic);
 
-  std::vector<bag2vid::MessageInstancePtr> extractMessages(const std::string &topic, const std::string &camera_name);
+  bag2vid::MessagesPtr extractMessages(const std::string &topic, const std::string &camera_name);
 
   /**
    * @brief Captures a screenshot of the current video frame
@@ -104,8 +104,9 @@ private:
   std::map<std::string, std::string> camera_topic_map_;
 
   // Dictionary of image topics
-  // Maps camera names to a vector of shared pointers to the serialized messages
-  std::map<std::string, std::vector<bag2vid::MessageInstancePtr>> image_data_;
+  // Maps camera names to a ref-counted, immutable list of serialized messages.
+  // Shared out to N panes without copying the underlying vector.
+  std::map<std::string, bag2vid::MessagesPtr> image_data_;
 
   cv::VideoWriter video_writer_;
 

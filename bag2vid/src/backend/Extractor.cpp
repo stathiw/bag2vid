@@ -63,7 +63,7 @@ std::string Extractor::getTopicType(const std::string& topic)
     return "";
 }
 
-std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
+bag2vid::MessagesPtr Extractor::extractMessages(const std::string& topic, const std::string& camera_name)
 {
     // Check if we have already extracted messages for this topic
     if (image_data_.find(camera_name) != image_data_.end())
@@ -72,7 +72,7 @@ std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> Extractor::e
         return image_data_.at(camera_name);
     }
 
-    std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages;
+    std::vector<bag2vid::MessageInstancePtr> messages;
 
     // Re-open the reader to reset the iterator position
     rosbag2_storage::StorageOptions storage_options;
@@ -109,11 +109,13 @@ std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> Extractor::e
     std::cout << "Start time: " << bag_start_time_sec_ << std::endl;
     std::cout << "End time: " << bag_end_time_sec_ << std::endl;
 
-    // Add messages to the image_data_ map
-    image_data_[camera_name] = messages;
+    // Freeze the vector behind a shared_ptr<const ...>. Cache in the map and
+    // hand the same shared_ptr back to the caller — single allocation, no copy.
+    auto frozen = std::make_shared<const std::vector<bag2vid::MessageInstancePtr>>(std::move(messages));
+    image_data_[camera_name] = frozen;
     camera_topic_map_[camera_name] = topic;
 
-    return messages;
+    return frozen;
 }
 
 cv::Mat Extractor::deserializeToImage(const bag2vid::MessageInstancePtr& msg, const std::string& type_str)
@@ -154,7 +156,7 @@ bool Extractor::captureScreenshot(const std::string& camera_name, const int &fra
     std::string image_type = getTopicType(camera_topic_map_[camera_name]);
     std::cout << "Image type: " << image_type << std::endl;
 
-    cv::Mat image = deserializeToImage(image_data_.at(camera_name).at(frame_id), image_type);
+    cv::Mat image = deserializeToImage(image_data_.at(camera_name)->at(frame_id), image_type);
     if (image.empty())
     {
         return false;
@@ -190,7 +192,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const double& start_t
     std::cout << "Image type: " << image_type << std::endl;
 
     // Get image size from first image
-    cv::Mat first_image = deserializeToImage(image_data_.at(camera_name).front(), image_type);
+    cv::Mat first_image = deserializeToImage(image_data_.at(camera_name)->front(), image_type);
     if (first_image.empty())
     {
         return false;
@@ -205,7 +207,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const double& start_t
     int count = 0;
     int total = 0;
     // Get number of frames between start_time and end_time
-    for (const auto& msg : image_data_.at(camera_name))
+    for (const auto& msg : *image_data_.at(camera_name))
     {
         double msg_time = static_cast<double>(msg->recv_timestamp) / 1e9;
         if (msg_time > end_time)
@@ -219,7 +221,7 @@ bool Extractor::writeVideo(const std::string& camera_name, const double& start_t
     }
     std::cout << "Total frames to write: " << total << std::endl;
 
-    for (const auto& msg : image_data_.at(camera_name))
+    for (const auto& msg : *image_data_.at(camera_name))
     {
         double msg_time = static_cast<double>(msg->recv_timestamp) / 1e9;
 

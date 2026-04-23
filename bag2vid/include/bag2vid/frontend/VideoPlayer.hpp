@@ -9,6 +9,8 @@
 #include <QImage>
 #include <QObject>
 
+#include <bag2vid/Types.hpp>
+
 class VideoPlayer : public QObject
 {
     Q_OBJECT
@@ -55,13 +57,22 @@ public slots:
     /**
      * @brief Load messages from a rosbag.
      *
-     * @param messages Vector of shared pointers to serialized bag messages.
+     * @param messages Ref-counted immutable list (must be non-null).
      * @param message_type The ROS message type string (e.g. "sensor_msgs/msg/Image").
      * @param bag_start_time Absolute time (seconds) that corresponds to bag-relative t=0.
      */
-    void loadMessages(std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages,
+    void loadMessages(const bag2vid::MessagesPtr& messages,
                       const std::string& message_type,
                       double bag_start_time);
+
+    /**
+     * @brief Drop the held message list and reset to empty state.
+     *
+     * Must be called before destroying the source Extractor: held
+     * MessageInstancePtr deleters reference Reader memory, so they need to run
+     * while the Reader is still alive.
+     */
+    void clearMessages();
 
 signals:
     /**
@@ -72,12 +83,13 @@ signals:
     void newFrame(const QImage &frame);
 
 private:
-    // Current frame index into messages_
+    // Current frame index into *messages_
     int current_frame_;
     // Absolute time (seconds) that corresponds to bag-relative t=0
     double bag_start_time_;
-    // Vector of shared pointers to serialized bag messages
-    std::vector<std::shared_ptr<rosbag2_storage::SerializedBagMessage>> messages_;
+    // Shared, immutable list of bag messages. Always non-null; points at an
+    // empty list when no bag is loaded.
+    bag2vid::MessagesPtr messages_;
     // The ROS message type string for this set of messages
     std::string message_type_;
 
