@@ -372,8 +372,7 @@ void Visualiser::updateTopicDropdown()
     std::cout << "selected topic: " << current_topic << std::endl;
 
     // Load messages for the selected topic
-    // camera name is first part of topic name (eg. /camera_2/image_raw_relay/compressed -> camera_2)
-    std::string camera_name = current_topic.substr(1, current_topic.find("/", 1) - 1);
+    std::string camera_name = current_topic;
 
     std::cout << "Extracting messages for camera: " << camera_name << std::endl;
     std::vector<bag2vid::MessageInstancePtr> messages =
@@ -444,7 +443,7 @@ void Visualiser::extractVideo()
     // Extract video
     std::string camera_name;
     if (!topic_dropdown_->currentText().isEmpty()) {
-        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+        camera_name = topic_dropdown_->currentText().toStdString();
     } else {
         std::cout << "No topic selected" << std::endl;
         return;
@@ -522,7 +521,7 @@ void Visualiser::captureScreenshot()
     // Get camera name
     std::string camera_name;
     if (!topic_dropdown_->currentText().isEmpty()) {
-        camera_name = topic_dropdown_->currentText().toStdString().substr(1, topic_dropdown_->currentText().toStdString().find("/", 1) - 1);
+        camera_name = topic_dropdown_->currentText().toStdString();
     } else {
         std::cout << "No topic selected" << std::endl;
         return;
